@@ -74,7 +74,7 @@ app.use(
         process.env.FRONTEND_URL,
         process.env.CLIENT_URL,
         "https://dary-frontend-ykrl.vercel.app",
-        "https://dary-19o9.vercel.app/"
+        "https://dary-19o9.vercel.app"
       ].filter(Boolean);
 
       if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
