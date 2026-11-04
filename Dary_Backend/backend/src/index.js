@@ -66,6 +66,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
+      const normalizedOrigin = origin.replace(/\/+$/, "");
       const allowedOrigins = [
         "http://localhost:5173",
         "http://localhost:5174",
@@ -74,15 +75,20 @@ app.use(
         process.env.FRONTEND_URL,
         process.env.CLIENT_URL,
         "https://dary-frontend-ykrl.vercel.app",
-        "https://dary-19o9.vercel.app"
+        "https://dary-19o9.vercel.app",
+        "https://dary-19o9-l4rq4871m-dary6.vercel.app",
       ].filter(Boolean);
 
-      if (allowedOrigins.includes(origin) || origin.endsWith(".vercel.app")) {
+      if (
+        allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith(".vercel.app")
+      ) {
         return callback(null, true);
       }
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
+    optionsSuccessStatus: 200,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
