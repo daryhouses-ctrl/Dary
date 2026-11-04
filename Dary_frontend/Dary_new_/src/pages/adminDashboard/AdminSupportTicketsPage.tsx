@@ -483,7 +483,8 @@ export default function AdminSupportTicketsPage() {
                 borderRadius: '8px',
                 border: '1px solid #CBD5E1',
                 fontSize: '0.85rem',
-                minWidth: '220px',
+                minWidth: 0,
+                flex: '1 1 180px',
               }}
             />
           </div>

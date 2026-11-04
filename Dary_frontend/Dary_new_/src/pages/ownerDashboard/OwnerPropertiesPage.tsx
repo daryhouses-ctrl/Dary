@@ -696,7 +696,7 @@ export default function OwnerPropertiesPage() {
           </div>
 
           {/* Search Input */}
-          <div style={{ minWidth: '240px', flex: '1 1 240px', maxWidth: '360px' }}>
+          <div style={{ minWidth: 0, flex: '1 1 220px', maxWidth: '360px', width: '100%' }}>
             <input
               type="text"
               value={searchQuery}

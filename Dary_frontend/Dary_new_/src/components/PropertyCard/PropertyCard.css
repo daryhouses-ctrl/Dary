@@ -304,3 +304,25 @@ html[dir="rtl"] .property-card:hover .property-card-btn-arrow {
 html[dir="ltr"] .property-card:hover .property-card-btn-arrow {
   transform: translateX(3px);
 }
+
+@media (max-width: 400px) {
+  .property-card-content {
+    padding: 0.85rem 0.9rem 0.95rem;
+  }
+
+  .property-card-price {
+    font-size: 1.05rem;
+  }
+
+  .property-card-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.76rem;
+  }
+
+  .property-badge-type,
+  .property-badge-availability {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+}
+

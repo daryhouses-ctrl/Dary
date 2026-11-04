@@ -645,8 +645,8 @@ export default function EditPropertyPage() {
                   : 'Type the apartment address below to locate it on GPS & auto-fill all fields:'}
               </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', position: 'relative' }}>
-              <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap', position: 'relative', width: '100%' }}>
+              <div style={{ position: 'relative', flex: 1, minWidth: 0, width: '100%' }}>
                 <input
                   type="text"
                   value={smartAddressQuery}

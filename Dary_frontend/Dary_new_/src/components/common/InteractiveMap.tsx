@@ -1092,7 +1092,7 @@ export default function InteractiveMap({
           gap: '0.75rem',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', flex: 1, minWidth: '240px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
           <span
             style={{
               width: '36px',
@@ -1272,8 +1272,8 @@ export default function InteractiveMap({
             )}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', position: 'relative' }}>
-            <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', position: 'relative', width: '100%' }}>
+            <div style={{ position: 'relative', flex: 1, minWidth: 0, width: '100%' }}>
               <input
                 type="text"
                 value={mapSearchQuery}
@@ -1407,10 +1407,10 @@ export default function InteractiveMap({
                 fontSize: '0.82rem',
                 fontWeight: 800,
                 cursor: geocodingBusy ? 'not-allowed' : 'pointer',
-                whiteSpace: 'nowrap',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
+                textAlign: 'center',
               }}
             >
               <span>🎯</span>

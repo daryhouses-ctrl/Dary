@@ -614,7 +614,7 @@ export default function AdminCalendarPage() {
                   }}
                 >
                   {/* Left Block: Property & Room */}
-                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', minWidth: '280px', flex: '1 1 300px' }}>
+                  <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', minWidth: 0, flex: '1 1 260px' }}>
                     <div
                       style={{
                         width: '46px',
@@ -654,7 +654,7 @@ export default function AdminCalendarPage() {
                   </div>
 
                   {/* Middle Block: Tenant Profile */}
-                  <div style={{ minWidth: '200px', flex: '1 1 200px' }}>
+                  <div style={{ minWidth: 0, flex: '1 1 180px' }}>
                     <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, marginBottom: '0.2rem' }}>
                       {locale === 'ar' ? 'بيانات المستأجر' : 'Tenant Info'}
                     </div>

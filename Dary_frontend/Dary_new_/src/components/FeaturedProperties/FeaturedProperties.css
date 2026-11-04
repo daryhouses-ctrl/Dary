@@ -127,8 +127,16 @@
   }
 
   .featured-carousel-item {
-    flex: 0 0 84%; /* Shows 1 card + 16% of next card to indicate scrollability */
-    min-width: 270px;
-    max-width: 340px;
+    flex: 0 0 85%;
+    min-width: 260px;
+    max-width: 400px;
+  }
+}
+
+@media (max-width: 440px) {
+  .featured-carousel-item {
+    flex: 0 0 88%;
+    min-width: 240px;
+    max-width: none;
   }
 }

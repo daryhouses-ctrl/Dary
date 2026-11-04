@@ -654,3 +654,49 @@
     padding: 1.25rem 1rem;
   }
 }
+
+@media (max-width: 640px) {
+  .dary-header {
+    padding: 0 1rem;
+    height: 60px;
+  }
+
+  .dary-content-outlet {
+    padding: 1rem 0.75rem;
+  }
+
+  .dary-welcome-card {
+    padding: 1.25rem 1rem;
+    border-radius: 14px;
+    gap: 1rem;
+  }
+
+  .dary-welcome-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .dary-welcome-actions .dary-primary-btn,
+  .dary-welcome-actions .dary-secondary-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .dary-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .dary-metric-card {
+    padding: 1rem 1.15rem;
+  }
+
+  .dary-section-card {
+    padding: 1.15rem 0.85rem;
+    border-radius: 14px;
+  }
+
+  .dary-table {
+    min-width: 580px;
+  }
+}

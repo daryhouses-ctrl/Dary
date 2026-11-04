@@ -556,6 +556,122 @@ export async function getPropertiesService(query, t) {
   }
 }
 
+// Get Dynamic Property Filter Facets
+export async function getPropertyFacetsService() {
+  const cacheKey = "properties:public:facets";
+  const cached = getMemoryCache(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  const where = {
+    deletedAt: null,
+    status: "APPROVED",
+    isAvailable: true,
+  };
+
+  const [
+    governorates,
+    cities,
+    districts,
+    universities,
+    propertyTypes,
+    propertyClasses,
+    genderAllowed,
+    roomTypes,
+    amenitiesList,
+  ] = await Promise.all([
+    prisma.property.findMany({
+      where: { ...where, governorate: { not: null } },
+      select: { governorate: true },
+      distinct: ["governorate"],
+    }),
+    prisma.property.findMany({
+      where: { ...where, city: { not: null } },
+      select: { city: true },
+      distinct: ["city"],
+    }),
+    prisma.property.findMany({
+      where: { ...where, district: { not: null } },
+      select: { district: true },
+      distinct: ["district"],
+    }),
+    prisma.property.findMany({
+      where: { ...where, nearestUniversity: { not: null } },
+      select: { nearestUniversity: true },
+      distinct: ["nearestUniversity"],
+    }),
+    prisma.property.findMany({
+      where,
+      select: { propertyType: true },
+      distinct: ["propertyType"],
+    }),
+    prisma.property.findMany({
+      where,
+      select: { propertyClass: true },
+      distinct: ["propertyClass"],
+    }),
+    prisma.property.findMany({
+      where,
+      select: { genderAllowed: true },
+      distinct: ["genderAllowed"],
+    }),
+    prisma.propertyRoom.findMany({
+      where: {
+        property: where,
+      },
+      select: { roomType: true },
+      distinct: ["roomType"],
+    }),
+    prisma.property.findMany({
+      where,
+      select: { amenities: true },
+    }),
+  ]);
+
+  const amenitiesSet = new Set();
+  for (const item of amenitiesList) {
+    if (Array.isArray(item.amenities)) {
+      for (const a of item.amenities) {
+        if (a && typeof a === "string" && a.trim()) {
+          amenitiesSet.add(a.trim());
+        }
+      }
+    }
+  }
+
+  const facets = {
+    governorates: governorates
+      .map((g) => g.governorate?.trim())
+      .filter((g) => Boolean(g)),
+    cities: cities
+      .map((c) => c.city?.trim())
+      .filter((c) => Boolean(c)),
+    districts: districts
+      .map((d) => d.district?.trim())
+      .filter((d) => Boolean(d)),
+    universities: universities
+      .map((u) => u.nearestUniversity?.trim())
+      .filter((u) => Boolean(u)),
+    propertyTypes: propertyTypes
+      .map((p) => p.propertyType)
+      .filter(Boolean),
+    propertyClasses: propertyClasses
+      .map((p) => p.propertyClass)
+      .filter(Boolean),
+    genderAllowed: genderAllowed
+      .map((g) => g.genderAllowed)
+      .filter(Boolean),
+    roomTypes: roomTypes
+      .map((r) => r.roomType)
+      .filter(Boolean),
+    amenities: Array.from(amenitiesSet),
+  };
+
+  setMemoryCache(cacheKey, facets, 300);
+  return facets;
+}
+
 const inFlightMyProperties = new Map();
 
 // Get Single Property

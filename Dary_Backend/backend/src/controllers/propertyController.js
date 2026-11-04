@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import {
   createPropertyService,
   getPropertiesService,
+  getPropertyFacetsService,
   getPropertyByIdService,
   getMyPropertiesService,
   updatePropertyService,
@@ -28,6 +29,19 @@ export const createProperty = asyncHandler(async (req, res) => {
     statusCode: 201,
     message: req.t("property.created"),
     data: { property },
+  });
+});
+
+// @desc   Get dynamic property filter facets
+// @route  GET /properties/facets
+// @access Public
+export const getPropertyFacets = asyncHandler(async (req, res) => {
+  const facets = await getPropertyFacetsService();
+
+  return sendSuccess(res, {
+    statusCode: 200,
+    message: "Filter facets retrieved successfully",
+    data: { facets },
   });
 });
 

@@ -2,12 +2,13 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useLocale } from '../utils/LocaleContext';
 import { useAuth } from '../context/AuthContext';
-import { propertyService, matchesPropertyFilters, type PropertyFilterParams } from '../services/propertyService';
+import { propertyService, matchesPropertyFilters, type PropertyFilterParams, type PropertyFilterFacets } from '../services/propertyService';
 import { fetchGlobalActiveBookings } from '../services/occupancyService';
 import type { Property } from '../types/property';
 import PropertyCard from '../components/PropertyCard/PropertyCard';
 import AnimatedCounter from '../components/common/AnimatedCounter';
 import InteractiveMap from '../components/common/InteractiveMap';
+import DarySelect from '../components/common/DarySelect';
 import {
   LocationService,
   resolveCoordinates,
@@ -263,6 +264,18 @@ export default function PropertiesPage() {
   // Reload counter for manual retries
   const [reloadTrigger, setReloadTrigger] = useState(0);
 
+  // Dynamic filter facets from database
+  const [facets, setFacets] = useState<PropertyFilterFacets | null>(null);
+
+  useEffect(() => {
+    propertyService
+      .getFilterFacets()
+      .then((res) => {
+        if (res) setFacets(res);
+      })
+      .catch(() => {});
+  }, [reloadTrigger]);
+
   // Fetch full public dataset from backend once (and on reloadTrigger) so filtering is instant and 100% accurate
   useEffect(() => {
     let ignore = false;
@@ -309,7 +322,7 @@ export default function PropertiesPage() {
     };
   }, [loadProperties]);
 
-  // Dynamically enrich city options with any custom cities/governorates from the database + property counts
+  // Dynamically enrich city options with primary options + backend facets + discovered locations
   const cityOptions = useMemo(() => {
     const withCounts = baseCityOptions.map((opt) => {
       if (!opt.value) return { ...opt, count: allProperties.length };
@@ -317,43 +330,221 @@ export default function PropertiesPage() {
       return { ...opt, count };
     });
 
-    // Discover any unique city/governorate in allProperties not covered by base options
-    const dynamicCities = new Map<string, number>();
-    for (const p of allProperties) {
-      const c = (p.city || p.governorate || '').trim();
-      if (!c) continue;
-      const alreadyMatched = baseCityOptions.some(
-        (opt) => opt.value && matchesPropertyFilters(p, { city: opt.value })
-      );
-      if (!alreadyMatched) {
-        dynamicCities.set(c, (dynamicCities.get(c) || 0) + 1);
+    const seenNorms = new Set<string>();
+    for (const opt of baseCityOptions) {
+      if (opt.value) {
+        seenNorms.add(normalizeArabicForSearch(opt.value));
+        seenNorms.add(normalizeArabicForSearch(opt.label.ar));
       }
     }
 
-    const extraOptions = Array.from(dynamicCities.entries()).map(([cName, count]) => ({
+    const discoveredCities = new Map<string, number>();
+
+    // 1. From backend facets
+    const facetLocations = [
+      ...(facets?.governorates || []),
+      ...(facets?.cities || []),
+      ...(facets?.districts || []),
+    ];
+    for (const loc of facetLocations) {
+      const clean = (loc || '').trim();
+      if (!clean) continue;
+      const norm = normalizeArabicForSearch(clean);
+      if (norm.length >= 3 && !seenNorms.has(norm)) {
+        seenNorms.add(norm);
+        discoveredCities.set(clean, 0);
+      }
+    }
+
+    // 2. From allProperties with live property counts
+    for (const p of allProperties) {
+      const c = (p.city || p.governorate || p.district || '').trim();
+      if (!c) continue;
+      const norm = normalizeArabicForSearch(c);
+      const isAlreadyBase = baseCityOptions.some(
+        (opt) => opt.value && matchesPropertyFilters(p, { city: opt.value })
+      );
+      if (!isAlreadyBase) {
+        const existingKey = Array.from(discoveredCities.keys()).find(
+          (k) => normalizeArabicForSearch(k) === norm
+        );
+        const key = existingKey || c;
+        discoveredCities.set(key, (discoveredCities.get(key) || 0) + 1);
+      }
+    }
+
+    const extraOptions = Array.from(discoveredCities.entries()).map(([cName, count]) => ({
       value: cName,
       label: { ar: cName, en: cName },
       count,
     }));
 
     return [...withCounts, ...extraOptions];
-  }, [allProperties]);
+  }, [allProperties, facets]);
 
-  // Dynamically enrich university options with any university present in allProperties
+  // Dynamically enrich university options with primary options + backend facets + discovered universities
   const universityOptions = useMemo(() => {
-    const seen = new Set(baseUniversityOptions.map((u) => normalizeArabicForSearch(u.value)));
-    const extra: Array<{ value: string; label: { ar: string; en: string } }> = [];
+    const withCounts = baseUniversityOptions.map((opt) => {
+      if (!opt.value) return { ...opt, count: allProperties.length };
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { university: opt.value })).length;
+      return { ...opt, count };
+    });
 
+    const seen = new Set(baseUniversityOptions.map((u) => normalizeArabicForSearch(u.value.replace(/^جامعة\s+/, ''))));
+    const extraMap = new Map<string, number>();
+
+    // 1. From facets
+    for (const u of facets?.universities || []) {
+      const clean = (u || '').trim();
+      if (!clean) continue;
+      const normCore = normalizeArabicForSearch(clean.replace(/^جامعة\s+/, ''));
+      if (normCore && !seen.has(normCore)) {
+        seen.add(normCore);
+        extraMap.set(clean, 0);
+      }
+    }
+
+    // 2. From allProperties with live property counts
     for (const p of allProperties) {
       const u = (p.nearestUniversity || '').trim();
       if (!u) continue;
-      const norm = normalizeArabicForSearch(u);
-      if (norm && !seen.has(norm)) {
-        seen.add(norm);
-        extra.push({ value: u, label: { ar: u, en: u } });
+      const normCore = normalizeArabicForSearch(u.replace(/^جامعة\s+/, ''));
+      if (!normCore) continue;
+      const matchedBase = baseUniversityOptions.some((b) => b.value && matchesPropertyFilters(p, { university: b.value }));
+      if (!matchedBase) {
+        const existingKey = Array.from(extraMap.keys()).find(
+          (k) => normalizeArabicForSearch(k.replace(/^جامعة\s+/, '')) === normCore
+        );
+        const key = existingKey || u;
+        extraMap.set(key, (extraMap.get(key) || 0) + 1);
       }
     }
-    return [...baseUniversityOptions, ...extra];
+
+    const extra = Array.from(extraMap.entries()).map(([uName, count]) => ({
+      value: uName,
+      label: { ar: uName, en: uName },
+      count,
+    }));
+
+    return [...withCounts, ...extra];
+  }, [allProperties, facets]);
+
+  // Dynamically enrich property types
+  const propertyTypeOptions = useMemo(() => {
+    const withCounts = typeOptions.map((opt) => {
+      if (!opt.value) return { ...opt, count: allProperties.length };
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { propertyType: opt.value })).length;
+      return { ...opt, count };
+    });
+
+    const seen = new Set(typeOptions.map((t) => t.value.toLowerCase()));
+    const extra: Array<{ value: string; label: { ar: string; en: string }; count: number }> = [];
+
+    const candidateTypes = [
+      ...(facets?.propertyTypes || []),
+      ...allProperties.map((p) => (p as any).propertyType || (typeof p.type === 'object' ? p.type.en : p.type)).filter(Boolean),
+    ];
+
+    for (const pt of candidateTypes) {
+      const strVal = String(pt).trim();
+      if (!strVal || seen.has(strVal.toLowerCase())) continue;
+      seen.add(strVal.toLowerCase());
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { propertyType: strVal })).length;
+      extra.push({
+        value: strVal,
+        label: { ar: strVal, en: strVal },
+        count,
+      });
+    }
+
+    return [...withCounts, ...extra];
+  }, [allProperties, facets]);
+
+  // Dynamically enrich property classes
+  const propertyClassOptions = useMemo(() => {
+    const withCounts = classOptions.map((opt) => {
+      if (!opt.value) return { ...opt, count: allProperties.length };
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { propertyClass: opt.value })).length;
+      return { ...opt, count };
+    });
+
+    const seen = new Set(classOptions.map((c) => c.value.toUpperCase()));
+    const extra: Array<{ value: string; label: { ar: string; en: string }; count: number }> = [];
+
+    for (const pc of facets?.propertyClasses || []) {
+      const strVal = String(pc).trim();
+      if (!strVal || seen.has(strVal.toUpperCase())) continue;
+      seen.add(strVal.toUpperCase());
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { propertyClass: strVal })).length;
+      extra.push({
+        value: strVal,
+        label: { ar: strVal, en: strVal },
+        count,
+      });
+    }
+
+    return [...withCounts, ...extra];
+  }, [allProperties, facets]);
+
+  // Dynamically enrich room types
+  const roomTypeOptionsEnriched = useMemo(() => {
+    const withCounts = roomTypeOptions.map((opt) => {
+      if (!opt.value) return { ...opt, count: allProperties.length };
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { roomType: opt.value })).length;
+      return { ...opt, count };
+    });
+
+    const seen = new Set(roomTypeOptions.map((r) => r.value.toUpperCase()));
+    const extra: Array<{ value: string; label: { ar: string; en: string }; count: number }> = [];
+
+    for (const rt of facets?.roomTypes || []) {
+      const strVal = String(rt).trim();
+      if (!strVal || seen.has(strVal.toUpperCase())) continue;
+      seen.add(strVal.toUpperCase());
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { roomType: strVal })).length;
+      extra.push({
+        value: strVal,
+        label: { ar: strVal, en: strVal },
+        count,
+      });
+    }
+
+    return [...withCounts, ...extra];
+  }, [allProperties, facets]);
+
+  // Dynamically enrich gender options
+  const genderOptionsEnriched = useMemo(() => {
+    const withCounts = genderOptions.map((opt) => {
+      if (!opt.value) return { ...opt, count: allProperties.length };
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { genderAllowed: opt.value })).length;
+      return { ...opt, count };
+    });
+
+    const seen = new Set(genderOptions.map((g) => g.value.toLowerCase()));
+    const extra: Array<{ value: string; label: { ar: string; en: string }; count: number }> = [];
+
+    for (const ga of facets?.genderAllowed || []) {
+      const strVal = String(ga).trim();
+      if (!strVal || seen.has(strVal.toLowerCase())) continue;
+      seen.add(strVal.toLowerCase());
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { genderAllowed: strVal })).length;
+      extra.push({
+        value: strVal,
+        label: { ar: strVal, en: strVal },
+        count,
+      });
+    }
+
+    return [...withCounts, ...extra];
+  }, [allProperties, facets]);
+
+  // Dynamically enrich bedroom counts
+  const bedroomOptionsEnriched = useMemo(() => {
+    return bedroomOptions.map((opt) => {
+      if (!opt.value) return { ...opt, count: allProperties.length };
+      const count = allProperties.filter((p) => matchesPropertyFilters(p, { bedrooms: parseInt(opt.value, 10) })).length;
+      return { ...opt, count };
+    });
   }, [allProperties]);
 
   // Build active filter object and filter allProperties instantaneously
@@ -524,37 +715,6 @@ export default function PropertiesPage() {
   ].filter(Boolean).length;
 
   const hasActiveFilters = activeFilterCount > 0;
-
-  // Derived Labels for Main Dropdown fields
-  const currentCityLabel = useMemo(() => {
-    if (!city) return locale === 'ar' ? 'جميع المواقع' : 'All Locations';
-    const found = cityOptions.find((c) => c.value === city);
-    return found ? found.label[locale] : city;
-  }, [city, cityOptions, locale]);
-
-  const currentUniversityLabel = useMemo(() => {
-    if (!university) return locale === 'ar' ? 'جميع الجامعات' : 'All Universities';
-    const found = universityOptions.find((u) => u.value === university);
-    return found ? found.label[locale] : university;
-  }, [university, universityOptions, locale]);
-
-  const currentTypeLabel = useMemo(() => {
-    if (!propertyType) return locale === 'ar' ? 'جميع الأنواع' : 'All Types';
-    const found = typeOptions.find((t) => t.value === propertyType);
-    return found ? found.label[locale] : propertyType;
-  }, [propertyType, locale]);
-
-  const currentBudgetLabel = useMemo(() => {
-    if (!priceRange) return locale === 'ar' ? 'أي ميزانية' : 'Any Budget';
-    if (priceRange === 'custom') {
-      if (customMinPrice || customMaxPrice) {
-        return `${customMinPrice || 0} – ${customMaxPrice || '...'} ${locale === 'ar' ? 'ج.م' : 'EGP'}`;
-      }
-      return locale === 'ar' ? 'ميزانية مخصصة' : 'Custom Budget';
-    }
-    const found = priceRanges.find((p) => p.value === priceRange);
-    return found ? found.label[locale] : priceRange;
-  }, [priceRange, customMinPrice, customMaxPrice, locale]);
 
   // Active filters list for chips display
   const activeFiltersList = useMemo(() => {
@@ -808,98 +968,46 @@ export default function PropertiesPage() {
             </div>
 
             {/* 2. Location (City / Governorate) */}
-            <div className="dary-filter-field">
-              <div className="dary-field-texts">
-                <span className="dary-field-label">{locale === 'ar' ? 'الموقع' : 'Location'}</span>
-                <span className="dary-field-value">{currentCityLabel}</span>
-              </div>
-              <span className="dary-field-chevron">
-                <ChevronDownIcon />
-              </span>
-              <select
-                className="dary-field-select"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                aria-label={locale === 'ar' ? 'الموقع' : 'Location'}
-              >
-                {cityOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.value
-                      ? `${opt.label[locale]}${opt.count > 0 ? ` (${opt.count})` : ''}`
-                      : opt.label[locale]}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DarySelect
+              id="filter-city"
+              label={locale === 'ar' ? 'الموقع' : 'Location'}
+              value={city}
+              onChange={setCity}
+              options={cityOptions}
+              searchable
+              ariaLabel={locale === 'ar' ? 'الموقع' : 'Location'}
+            />
 
             {/* 3. University */}
-            <div className="dary-filter-field">
-              <div className="dary-field-texts">
-                <span className="dary-field-label">{locale === 'ar' ? 'الجامعة' : 'University'}</span>
-                <span className="dary-field-value">{currentUniversityLabel}</span>
-              </div>
-              <span className="dary-field-chevron">
-                <ChevronDownIcon />
-              </span>
-              <select
-                className="dary-field-select"
-                value={university}
-                onChange={(e) => setUniversity(e.target.value)}
-                aria-label={locale === 'ar' ? 'الجامعة' : 'University'}
-              >
-                {universityOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label[locale]}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DarySelect
+              id="filter-university"
+              label={locale === 'ar' ? 'الجامعة' : 'University'}
+              value={university}
+              onChange={setUniversity}
+              options={universityOptions}
+              searchable
+              ariaLabel={locale === 'ar' ? 'الجامعة' : 'University'}
+            />
 
             {/* 4. Property Type */}
-            <div className="dary-filter-field">
-              <div className="dary-field-texts">
-                <span className="dary-field-label">{locale === 'ar' ? 'نوع السكن' : 'Property Type'}</span>
-                <span className="dary-field-value">{currentTypeLabel}</span>
-              </div>
-              <span className="dary-field-chevron">
-                <ChevronDownIcon />
-              </span>
-              <select
-                className="dary-field-select"
-                value={propertyType}
-                onChange={(e) => setPropertyType(e.target.value)}
-                aria-label={locale === 'ar' ? 'نوع السكن' : 'Property Type'}
-              >
-                {typeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label[locale]}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DarySelect
+              id="filter-property-type"
+              label={locale === 'ar' ? 'نوع السكن' : 'Property Type'}
+              value={propertyType}
+              onChange={setPropertyType}
+              options={propertyTypeOptions}
+              ariaLabel={locale === 'ar' ? 'نوع السكن' : 'Property Type'}
+            />
 
             {/* 5. Budget */}
-            <div className="dary-filter-field">
-              <div className="dary-field-texts">
-                <span className="dary-field-label">{locale === 'ar' ? 'الميزانية' : 'Budget'}</span>
-                <span className="dary-field-value">{currentBudgetLabel}</span>
-              </div>
-              <span className="dary-field-chevron">
-                <ChevronDownIcon />
-              </span>
-              <select
-                className="dary-field-select"
-                value={priceRange}
-                onChange={(e) => setPriceRange(e.target.value)}
-                aria-label={locale === 'ar' ? 'الميزانية' : 'Budget'}
-              >
-                {priceRanges.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label[locale]}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <DarySelect
+              id="filter-budget"
+              label={locale === 'ar' ? 'الميزانية' : 'Budget'}
+              value={priceRange}
+              onChange={setPriceRange}
+              options={priceRanges}
+              ariaLabel={locale === 'ar' ? 'الميزانية' : 'Budget'}
+            />
 
             {/* 6. Search Submit Button */}
             <button
@@ -974,109 +1082,54 @@ export default function PropertiesPage() {
           {showAdvancedFilters && (
             <div className="dary-advanced-panel">
               {/* Gender Allowed */}
-              <div className="dary-filter-field">
-                <div className="dary-field-texts">
-                  <span className="dary-field-label">{locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}</span>
-                  <span className="dary-field-value">
-                    {genderOptions.find((g) => g.value === genderAllowed)?.label[locale] || genderOptions[0].label[locale]}
-                  </span>
-                </div>
-                <span className="dary-field-chevron"><ChevronDownIcon /></span>
-                <select
-                  className="dary-field-select"
-                  value={genderAllowed}
-                  onChange={(e) => setGenderAllowed(e.target.value)}
-                  aria-label={locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}
-                >
-                  {genderOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
-                  ))}
-                </select>
-              </div>
+              <DarySelect
+                id="filter-gender"
+                label={locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}
+                value={genderAllowed}
+                onChange={setGenderAllowed}
+                options={genderOptionsEnriched}
+                ariaLabel={locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}
+              />
 
               {/* Room Type */}
-              <div className="dary-filter-field">
-                <div className="dary-field-texts">
-                  <span className="dary-field-label">{locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}</span>
-                  <span className="dary-field-value">
-                    {roomTypeOptions.find((r) => r.value === roomType)?.label[locale] || roomTypeOptions[0].label[locale]}
-                  </span>
-                </div>
-                <span className="dary-field-chevron"><ChevronDownIcon /></span>
-                <select
-                  className="dary-field-select"
-                  value={roomType}
-                  onChange={(e) => setRoomType(e.target.value)}
-                  aria-label={locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}
-                >
-                  {roomTypeOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
-                  ))}
-                </select>
-              </div>
+              <DarySelect
+                id="filter-room-type"
+                label={locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}
+                value={roomType}
+                onChange={setRoomType}
+                options={roomTypeOptionsEnriched}
+                ariaLabel={locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}
+              />
 
               {/* Bedrooms Count */}
-              <div className="dary-filter-field">
-                <div className="dary-field-texts">
-                  <span className="dary-field-label">{locale === 'ar' ? 'عدد الغرف' : 'Rooms Count'}</span>
-                  <span className="dary-field-value">
-                    {bedroomOptions.find((b) => b.value === bedrooms)?.label[locale] || bedroomOptions[0].label[locale]}
-                  </span>
-                </div>
-                <span className="dary-field-chevron"><ChevronDownIcon /></span>
-                <select
-                  className="dary-field-select"
-                  value={bedrooms}
-                  onChange={(e) => setBedrooms(e.target.value)}
-                  aria-label={locale === 'ar' ? 'عدد الغرف' : 'Bedrooms'}
-                >
-                  {bedroomOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
-                  ))}
-                </select>
-              </div>
+              <DarySelect
+                id="filter-bedrooms"
+                label={locale === 'ar' ? 'عدد الغرف' : 'Rooms Count'}
+                value={bedrooms}
+                onChange={setBedrooms}
+                options={bedroomOptionsEnriched}
+                ariaLabel={locale === 'ar' ? 'عدد الغرف' : 'Bedrooms'}
+              />
 
               {/* Property Class */}
-              <div className="dary-filter-field">
-                <div className="dary-field-texts">
-                  <span className="dary-field-label">{locale === 'ar' ? 'فئة السكن' : 'Property Class'}</span>
-                  <span className="dary-field-value">
-                    {classOptions.find((c) => c.value === propertyClass)?.label[locale] || classOptions[0].label[locale]}
-                  </span>
-                </div>
-                <span className="dary-field-chevron"><ChevronDownIcon /></span>
-                <select
-                  className="dary-field-select"
-                  value={propertyClass}
-                  onChange={(e) => setPropertyClass(e.target.value)}
-                  aria-label={locale === 'ar' ? 'فئة السكن' : 'Property Class'}
-                >
-                  {classOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
-                  ))}
-                </select>
-              </div>
+              <DarySelect
+                id="filter-class"
+                label={locale === 'ar' ? 'فئة السكن' : 'Property Class'}
+                value={propertyClass}
+                onChange={setPropertyClass}
+                options={propertyClassOptions}
+                ariaLabel={locale === 'ar' ? 'فئة السكن' : 'Property Class'}
+              />
 
               {/* Max Distance */}
-              <div className="dary-filter-field">
-                <div className="dary-field-texts">
-                  <span className="dary-field-label">{locale === 'ar' ? 'المسافة للجامعة' : 'Distance to University'}</span>
-                  <span className="dary-field-value">
-                    {distanceOptions.find((d) => d.value === maxDistance)?.label[locale] || distanceOptions[0].label[locale]}
-                  </span>
-                </div>
-                <span className="dary-field-chevron"><ChevronDownIcon /></span>
-                <select
-                  className="dary-field-select"
-                  value={maxDistance}
-                  onChange={(e) => setMaxDistance(e.target.value)}
-                  aria-label={locale === 'ar' ? 'المسافة للجامعة' : 'Distance to University'}
-                >
-                  {distanceOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
-                  ))}
-                </select>
-              </div>
+              <DarySelect
+                id="filter-distance"
+                label={locale === 'ar' ? 'المسافة للجامعة' : 'Distance to University'}
+                value={maxDistance}
+                onChange={setMaxDistance}
+                options={distanceOptions}
+                ariaLabel={locale === 'ar' ? 'المسافة للجامعة' : 'Distance to University'}
+              />
 
               {/* Custom Price Range Row */}
               {priceRange === 'custom' && (
@@ -1199,25 +1252,14 @@ export default function PropertiesPage() {
               <span className="dary-sort-label">
                 {locale === 'ar' ? 'ترتيب حسب:' : 'Sort by:'}
               </span>
-              <div className="dary-sort-box">
-                <span className="dary-sort-current-val">
-                  {sortOptions.find((s) => s.value === sortBy)?.label[locale] || t.properties_sort_recommended}
-                </span>
-                <ChevronDownIcon />
-                <select
-                  id="properties-sort-select"
-                  className="dary-sort-native-select"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  aria-label={t.properties_sort_by}
-                >
-                  {sortOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <DarySelect
+                id="properties-sort-select"
+                value={sortBy}
+                onChange={setSortBy}
+                options={sortOptions}
+                compact
+                ariaLabel={t.properties_sort_by}
+              />
             </div>
           </div>
         </div>
@@ -1397,138 +1439,84 @@ export default function PropertiesPage() {
             <div className="mobile-drawer-body">
               {/* Location */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">{t.properties_filter_location}</label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={t.properties_filter_location}
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
-                >
-                  {cityOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]} {opt.value && opt.count > 0 ? `(${opt.count})` : ''}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCity}
+                  options={cityOptions}
+                  searchable
+                />
               </div>
 
               {/* Nearest University */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">
-                  {locale === 'ar' ? 'الجامعة الأقرب' : 'Nearest University'}
-                </label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={locale === 'ar' ? 'الجامعة الأقرب' : 'Nearest University'}
                   value={university}
-                  onChange={(e) => setUniversity(e.target.value)}
-                >
-                  {universityOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setUniversity}
+                  options={universityOptions}
+                  searchable
+                />
               </div>
 
               {/* Property Type */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">{t.properties_filter_type}</label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={t.properties_filter_type}
                   value={propertyType}
-                  onChange={(e) => setPropertyType(e.target.value)}
-                >
-                  {typeOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setPropertyType}
+                  options={propertyTypeOptions}
+                />
               </div>
 
               {/* Gender Allowed */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">
-                  {locale === 'ar' ? 'مخصص لـ' : 'Gender Allowed'}
-                </label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={locale === 'ar' ? 'مخصص لـ' : 'Gender Allowed'}
                   value={genderAllowed}
-                  onChange={(e) => setGenderAllowed(e.target.value)}
-                >
-                  {genderOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setGenderAllowed}
+                  options={genderOptionsEnriched}
+                />
               </div>
 
               {/* Room Type */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">
-                  {locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}
-                </label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}
                   value={roomType}
-                  onChange={(e) => setRoomType(e.target.value)}
-                >
-                  {roomTypeOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setRoomType}
+                  options={roomTypeOptionsEnriched}
+                />
               </div>
 
               {/* Price Range */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">{t.properties_filter_price}</label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={t.properties_filter_price}
                   value={priceRange}
-                  onChange={(e) => setPriceRange(e.target.value)}
-                >
-                  {priceRanges.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setPriceRange}
+                  options={priceRanges}
+                />
               </div>
 
               {/* Bedrooms */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">{t.properties_filter_bedrooms}</label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={t.properties_filter_bedrooms}
                   value={bedrooms}
-                  onChange={(e) => setBedrooms(e.target.value)}
-                >
-                  {bedroomOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setBedrooms}
+                  options={bedroomOptionsEnriched}
+                />
               </div>
 
               {/* Property Class */}
               <div className="mobile-drawer-group">
-                <label className="mobile-drawer-label">
-                  {locale === 'ar' ? 'فئة السكن' : 'Property Class'}
-                </label>
-                <select
-                  className="mobile-drawer-select"
+                <DarySelect
+                  label={locale === 'ar' ? 'فئة السكن' : 'Property Class'}
                   value={propertyClass}
-                  onChange={(e) => setPropertyClass(e.target.value)}
-                >
-                  {classOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setPropertyClass}
+                  options={propertyClassOptions}
+                />
               </div>
             </div>
 

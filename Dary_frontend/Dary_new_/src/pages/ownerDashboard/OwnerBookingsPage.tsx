@@ -1024,7 +1024,7 @@ export default function OwnerBookingsPage() {
                       borderBottom: '1px solid #F1F5F9',
                     }}
                   >
-                    <div style={{ flex: '1 1 320px' }}>
+                    <div style={{ flex: '1 1 260px', minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.35rem' }}>
                         <h3 style={{ margin: 0, fontSize: '1.15rem', color: '#0B2A4A', fontWeight: 800 }}>
                           👤 {tenantName}
@@ -1055,7 +1055,7 @@ export default function OwnerBookingsPage() {
                     </div>
 
                     {/* Stay Duration & Price */}
-                    <div style={{ textAlign: locale === 'ar' ? 'left' : 'right', minWidth: '160px' }}>
+                    <div style={{ textAlign: locale === 'ar' ? 'left' : 'right', minWidth: 0, flex: '1 1 160px' }}>
                       <span style={{ fontSize: '0.75rem', color: '#94A3B8', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>
                         {locale === 'ar' ? 'فترة الإقامة المقترحة' : 'Stay Duration'}
                       </span>

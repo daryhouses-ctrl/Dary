@@ -36,6 +36,63 @@ export interface PropertyFilterParams {
   limit?: number;
 }
 
+export interface PropertyFilterFacets {
+  governorates: string[];
+  cities: string[];
+  districts: string[];
+  universities: string[];
+  propertyTypes: string[];
+  propertyClasses: string[];
+  genderAllowed: string[];
+  roomTypes: string[];
+  amenities: string[];
+}
+
+export function extractDynamicFacetsFromProperties(properties: Property[]): PropertyFilterFacets {
+  const govSet = new Set<string>();
+  const citySet = new Set<string>();
+  const distSet = new Set<string>();
+  const univSet = new Set<string>();
+  const ptypeSet = new Set<string>();
+  const pclassSet = new Set<string>();
+  const genderSet = new Set<string>();
+  const rtypeSet = new Set<string>();
+  const amenSet = new Set<string>();
+
+  for (const p of properties) {
+    if (p.governorate?.trim()) govSet.add(p.governorate.trim());
+    if (p.city?.trim()) citySet.add(p.city.trim());
+    if (p.district?.trim()) distSet.add(p.district.trim());
+    if (p.nearestUniversity?.trim()) univSet.add(p.nearestUniversity.trim());
+    const pt = (p as any).propertyType || (typeof p.type === 'object' ? p.type.en : p.type);
+    if (pt) ptypeSet.add(String(pt));
+    if (p.propertyClass) pclassSet.add(String(p.propertyClass));
+    if (p.genderAllowed) genderSet.add(String(p.genderAllowed));
+    if (Array.isArray(p.rooms_)) {
+      for (const r of p.rooms_) {
+        if (r.roomType) rtypeSet.add(String(r.roomType));
+      }
+    }
+    if (Array.isArray(p.amenities)) {
+      for (const a of p.amenities) {
+        if (a && typeof a === 'string' && a.trim()) amenSet.add(a.trim());
+      }
+    }
+  }
+
+  return {
+    governorates: Array.from(govSet),
+    cities: Array.from(citySet),
+    districts: Array.from(distSet),
+    universities: Array.from(univSet),
+    propertyTypes: Array.from(ptypeSet),
+    propertyClasses: Array.from(pclassSet),
+    genderAllowed: Array.from(genderSet),
+    roomTypes: Array.from(rtypeSet),
+    amenities: Array.from(amenSet),
+  };
+}
+
 // In-memory cache + sessionStorage backup for instant property retrieval
 const propertyMemoryCache = new Map<string, Property>();
 
@@ -855,6 +912,43 @@ export function matchesPropertyFilters(prop: Property, filters: PropertyFilterPa
 }
 
 export const propertyService = {
+  /**
+   * 0. GET /properties/facets
+   * Fetch distinct database filter facets (governorates, cities, universities, types, classes, room types, amenities)
+   */
+  async getFilterFacets(): Promise<PropertyFilterFacets> {
+    try {
+      const response = await ApiClient.get<any>('/properties/facets');
+      const facets = response?.data?.facets || response?.facets || response?.data;
+      if (facets && typeof facets === 'object') {
+        return {
+          governorates: Array.isArray(facets.governorates) ? facets.governorates : [],
+          cities: Array.isArray(facets.cities) ? facets.cities : [],
+          districts: Array.isArray(facets.districts) ? facets.districts : [],
+          universities: Array.isArray(facets.universities) ? facets.universities : [],
+          propertyTypes: Array.isArray(facets.propertyTypes) ? facets.propertyTypes : [],
+          propertyClasses: Array.isArray(facets.propertyClasses) ? facets.propertyClasses : [],
+          genderAllowed: Array.isArray(facets.genderAllowed) ? facets.genderAllowed : [],
+          roomTypes: Array.isArray(facets.roomTypes) ? facets.roomTypes : [],
+          amenities: Array.isArray(facets.amenities) ? facets.amenities : [],
+        };
+      }
+    } catch (err) {
+      console.warn('Facets API unavailable, will fall back to local facet discovery:', err);
+    }
+    return {
+      governorates: [],
+      cities: [],
+      districts: [],
+      universities: [],
+      propertyTypes: [],
+      propertyClasses: [],
+      genderAllowed: [],
+      roomTypes: [],
+      amenities: [],
+    };
+  },
+
   /**
    * 1. GET /properties
    * Advanced search, filtering and pagination (fetches full public set and applies Arabic/bilingual smart filtering)

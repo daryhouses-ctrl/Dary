@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { BookingService } from '../services/bookingService';
 import type { Property } from '../types/property';
 import InteractiveMap from '../components/common/InteractiveMap';
+import './PropertyDetailsPage.css';
 import {
   formatCleanAddress,
   normalizeUniversityName,
@@ -1277,8 +1278,8 @@ export default function PropertyDetailsPage() {
   };
 
   return (
-    <main className="page" style={{ paddingTop: '7rem', paddingBottom: '4rem' }}>
-      <div className="container" style={{ maxWidth: '1080px' }}>
+    <main className="page property-details-main">
+      <div className="container property-details-container">
 
         {/* Back link */}
         <Link
@@ -1297,17 +1298,7 @@ export default function PropertyDetailsPage() {
           <div
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
-            style={{
-              position: 'relative',
-              borderRadius: '24px',
-              overflow: 'hidden',
-              aspectRatio: '16/9',
-              minHeight: '340px',
-              maxHeight: '520px',
-              backgroundColor: '#071829',
-              boxShadow: '0 12px 36px rgba(11, 42, 74, 0.16)',
-              userSelect: 'none',
-            }}
+            className="property-gallery-viewport"
           >
             {/* Ambient Blurred Backdrop (Ensures empty letterbox space is vibrant and matches image colors) */}
             <img
@@ -1719,7 +1710,7 @@ export default function PropertyDetailsPage() {
         </div>
 
         {/* ── Main Two-Column Layout ───────────────────────────────────────── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: '2rem', alignItems: 'start' }}>
+        <div className="property-details-layout">
           <div>
             {/* Header: Title & Badges */}
             <div style={{ marginBottom: '1.25rem' }}>
@@ -2095,7 +2086,7 @@ export default function PropertyDetailsPage() {
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.9rem' }}>
                 {locale === 'ar' ? '📊 مواصفات وبيانات السكن' : '📊 Property Specifications'}
               </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.85rem' }}>
+              <div className="property-specs-grid">
                 <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
                     {locale === 'ar' ? 'نوع العقار' : 'Property Type'}
@@ -2165,7 +2156,7 @@ export default function PropertyDetailsPage() {
               <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#166534', margin: '0 0 0.85rem' }}>
                 💡 {locale === 'ar' ? 'المرافق والفواتير المشمولة في الإيجار' : 'Utilities & Inclusions in Rent'}
               </h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              <div className="property-inclusions-grid">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.electricityIncluded ? '#15803D' : '#64748B' }}>
                   <span>{property.electricityIncluded ? '⚡ ✓' : '⚡ ✕'}</span>
                   <span>{property.electricityIncluded ? (locale === 'ar' ? 'الكهرباء مشمولة في الإيجار' : 'Electricity Included') : (locale === 'ar' ? 'الكهرباء غير مشمولة (على المستأجر)' : 'Electricity Not Included')}</span>
@@ -2251,7 +2242,7 @@ export default function PropertyDetailsPage() {
                   </span>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+                <div className="property-pricing-breakdown-grid">
                   {property.rooms_.map((room: any, idx: number) => {
                     const roomName =
                       room.roomType === 'SINGLE' ? (locale === 'ar' ? 'غرفة فردية' : 'Single Room') :
@@ -2560,15 +2551,13 @@ export default function PropertyDetailsPage() {
               {/* Aggregates Card */}
               {reviewsMeta && reviewsMeta.total > 0 ? (
                 <div
+                  className="property-reviews-summary-grid"
                   style={{
                     backgroundColor: '#F8FAFC',
                     border: '1px solid #E2E8F0',
                     borderRadius: '16px',
                     padding: '1.25rem 1.5rem',
                     marginBottom: '1.5rem',
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '1.25rem',
                     alignItems: 'center',
                   }}
                 >
@@ -2715,7 +2704,7 @@ export default function PropertyDetailsPage() {
           </div>
 
           {/* ── Sidebar: Price & Booking Actions Card ────────────────────────── */}
-          <div style={{ position: 'sticky', top: '6rem', border: '1px solid rgba(11,42,74,0.1)', borderRadius: '20px', padding: '1.65rem', background: '#fff', boxShadow: '0 6px 24px rgba(11,42,74,0.08)' }}>
+          <div className="property-details-sidebar">
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>
               {locale === 'ar' ? 'السعر الشهري' : 'Monthly Price'}
             </div>
@@ -3213,18 +3202,7 @@ export default function PropertyDetailsPage() {
             padding: '1rem',
           }}
         >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '20px',
-              padding: '2rem',
-              maxWidth: '520px',
-              width: '100%',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-          >
+          <div className="property-modal-dialog">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: 'var(--color-navy)', margin: 0 }}>
                 {locale === 'ar' ? '📅 تقديم طلب حجز سكن' : '📅 Submit Booking Request'}
@@ -3415,7 +3393,7 @@ export default function PropertyDetailsPage() {
                 </div>
 
                 {/* Dates */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div className="property-modal-grid-2">
                   <div>
                     <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.35rem', color: 'var(--color-navy)' }}>
                       {locale === 'ar' ? 'تاريخ البداية / الوصول *' : 'Start Date *'}
@@ -3544,18 +3522,7 @@ export default function PropertyDetailsPage() {
             padding: '1rem',
           }}
         >
-          <div
-            style={{
-              backgroundColor: '#FFFFFF',
-              borderRadius: '20px',
-              padding: '2rem',
-              maxWidth: '520px',
-              width: '100%',
-              boxShadow: '0 24px 60px rgba(0,0,0,0.25)',
-              maxHeight: '90vh',
-              overflowY: 'auto',
-            }}
-          >
+          <div className="property-modal-dialog">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
               <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#DC2626', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>⚠️</span>
@@ -3649,7 +3616,7 @@ export default function PropertyDetailsPage() {
                   <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: 'var(--color-navy)', marginBottom: '0.4rem' }}>
                     {locale === 'ar' ? 'درجة الأولوية / خطورة المشكلة' : 'Priority / Severity'}
                   </label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+                  <div className="property-modal-grid-3">
                     {(['low', 'medium', 'high'] as const).map((p) => {
                       const isSelected = reportPriority === p;
                       const labelMap: Record<string, { ar: string; en: string }> = {

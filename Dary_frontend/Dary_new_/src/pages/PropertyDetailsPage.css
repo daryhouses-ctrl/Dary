@@ -1,0 +1,181 @@
+/* ==========================================================================
+   Property Details Page Styles - DARY Real Estate Responsive UI
+   ========================================================================== */
+
+.property-details-main {
+  padding-top: 7rem;
+  padding-bottom: 4rem;
+  min-height: 80vh;
+}
+
+.property-details-container {
+  width: 100%;
+  max-width: 1140px;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+/* Hero Gallery Viewport */
+.property-gallery-viewport {
+  position: relative;
+  border-radius: 24px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  min-height: 320px;
+  max-height: 520px;
+  background-color: #071829;
+  box-shadow: 0 12px 36px rgba(11, 42, 74, 0.16);
+  user-select: none;
+}
+
+/* Two-Column Layout (Content + Sticky Sidebar) */
+.property-details-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 2rem;
+  align-items: start;
+}
+
+.property-details-sidebar {
+  position: sticky;
+  top: 6rem;
+  border: 1px solid rgba(11, 42, 74, 0.1);
+  border-radius: 20px;
+  padding: 1.65rem;
+  background: #FFFFFF;
+  box-shadow: 0 6px 24px rgba(11, 42, 74, 0.08);
+}
+
+/* Responsive Specs & Inclusions Grids */
+.property-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.85rem;
+}
+
+.property-inclusions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.property-pricing-breakdown-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.property-reviews-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+/* Modals */
+.property-modal-dialog {
+  background-color: #FFFFFF;
+  border-radius: 20px;
+  padding: 2rem;
+  max-width: 520px;
+  width: 100%;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.property-modal-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.property-modal-grid-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+/* ── Responsive Breakpoints ──────────────────────────────────────────────── */
+
+/* Tablet (<= 992px) */
+@media (max-width: 992px) {
+  .property-details-layout {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+
+  .property-details-sidebar {
+    position: static;
+    top: auto;
+    margin-top: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+/* Mobile (<= 768px) */
+@media (max-width: 768px) {
+  .property-details-main {
+    padding-top: 5.5rem;
+    padding-bottom: 3rem;
+  }
+
+  .property-details-container {
+    padding-inline: 1rem;
+  }
+
+  .property-gallery-viewport {
+    border-radius: 18px;
+    min-height: 220px;
+    max-height: 340px;
+  }
+
+  .property-details-sidebar {
+    border-radius: 16px;
+    padding: 1.25rem;
+  }
+
+  .property-modal-dialog {
+    padding: 1.5rem 1.25rem;
+    border-radius: 16px;
+  }
+
+  .property-modal-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+}
+
+/* Small Mobile (<= 480px) */
+@media (max-width: 480px) {
+  .property-details-main {
+    padding-top: 5rem;
+    padding-bottom: 2.25rem;
+  }
+
+  .property-details-container {
+    padding-inline: 0.85rem;
+  }
+
+  .property-gallery-viewport {
+    border-radius: 14px;
+    min-height: 190px;
+    max-height: 260px;
+  }
+
+  .property-specs-grid,
+  .property-inclusions-grid,
+  .property-pricing-breakdown-grid,
+  .property-reviews-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .property-modal-dialog {
+    padding: 1.25rem 1rem;
+    border-radius: 14px;
+  }
+
+  .property-modal-grid-3 {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}

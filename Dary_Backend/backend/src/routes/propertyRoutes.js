@@ -10,6 +10,7 @@ import { validateUUID } from "../core/middleware/ValidateId.js";
 import {
   createProperty,
   getProperties,
+  getPropertyFacets,
   getPropertyById,
   getMyProperties,
   updateProperty,
@@ -91,6 +92,8 @@ router.get(
   requirePermission("property.pending.read"),
   getPendingProperties,
 );
+
+router.get("/facets", getPropertyFacets);
 
 router.get("/", getProperties);
 

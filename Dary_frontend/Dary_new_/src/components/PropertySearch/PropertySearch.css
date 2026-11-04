@@ -151,3 +151,17 @@
     font-size: 0.875rem;
   }
 }
+
+@media (max-width: 360px) {
+  .hero-search-pill {
+    height: 56px;
+    padding-inline-start: 0.5rem;
+    padding-inline-end: 0.25rem;
+  }
+
+  .hero-search-btn {
+    height: 44px;
+    padding-inline: 0.75rem;
+    font-size: 0.8125rem;
+  }
+}

@@ -1,0 +1,371 @@
+/* ==========================================================================
+   DARY CUSTOM SELECT DROPDOWN COMPONENT STYLES
+   ========================================================================== */
+
+.dary-select-container {
+  position: relative;
+  width: 100%;
+  display: block;
+  user-select: none;
+}
+
+/* Base Trigger Button */
+.dary-select-trigger {
+  width: 100%;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding-inline: 0.95rem 0.85rem;
+  padding-block: 0;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
+  text-align: start;
+}
+
+.dary-select-trigger:hover {
+  border-color: #CBD5E1;
+  background-color: #F8FAFC;
+}
+
+.dary-select-trigger.is-open,
+.dary-select-container.is-active .dary-select-trigger {
+  border-color: #2F6BFF;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.12);
+}
+
+/* Trigger Label & Value */
+.dary-select-texts {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.dary-select-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748B;
+  line-height: 1.1;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
+.dary-select-value {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #0B2A4A;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.dary-select-value.is-placeholder {
+  color: #94A3B8;
+  font-weight: 500;
+}
+
+/* Trigger Actions (Icon + Chevron) */
+.dary-select-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-inline-start: 6px;
+  flex-shrink: 0;
+  color: #64748B;
+}
+
+.dary-select-chevron {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dary-select-chevron.is-open {
+  transform: rotate(180deg);
+  color: #2F6BFF;
+}
+
+/* Floating Menu */
+.dary-select-menu {
+  position: absolute;
+  inset-inline-start: 0;
+  width: 100%;
+  min-width: 220px;
+  max-width: 380px;
+  max-height: 260px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  box-shadow: 0 12px 32px -4px rgba(11, 42, 74, 0.14), 0 4px 12px -2px rgba(11, 42, 74, 0.05);
+  z-index: 1050;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: darySelectDropdownFade 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes darySelectDropdownFade {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.dary-select-menu.is-downward {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.dary-select-menu.is-upward {
+  bottom: calc(100% + 6px);
+  top: auto;
+  box-shadow: 0 -12px 32px -4px rgba(11, 42, 74, 0.14), 0 -4px 12px -2px rgba(11, 42, 74, 0.05);
+}
+
+/* Internal Search Box */
+.dary-select-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0.75rem 0.45rem;
+  border-bottom: 1px solid #F1F5F9;
+  background: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.dary-select-search-input {
+  width: 100%;
+  height: 36px;
+  padding-inline: 0.75rem 1.75rem;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+  background-color: #F8FAFC;
+  font-family: inherit;
+  font-size: 0.82rem;
+  color: #0B2A4A;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.dary-select-search-input:focus {
+  border-color: #2F6BFF;
+  background-color: #FFFFFF;
+  box-shadow: 0 0 0 2px rgba(47, 107, 255, 0.1);
+}
+
+.dary-select-search-clear {
+  position: absolute;
+  inset-inline-end: 1.15rem;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #E2E8F0;
+  color: #64748B;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dary-select-search-clear:hover {
+  background: #CBD5E1;
+  color: #0B2A4A;
+}
+
+/* Scrollable Options List */
+.dary-select-options-list {
+  padding: 0.35rem;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  flex: 1;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(11, 42, 74, 0.2) transparent;
+}
+
+.dary-select-options-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.dary-select-options-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dary-select-options-list::-webkit-scrollbar-thumb {
+  background: rgba(11, 42, 74, 0.2);
+  border-radius: 999px;
+}
+
+.dary-select-options-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(11, 42, 74, 0.35);
+}
+
+/* Option Item */
+.dary-select-option {
+  width: 100%;
+  min-height: 40px;
+  padding: 0.5rem 0.85rem;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: start;
+  transition: background-color 0.12s ease, color 0.12s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.dary-select-option:hover,
+.dary-select-option.is-highlighted {
+  background-color: #F8FAFC;
+}
+
+.dary-select-option.is-selected {
+  background-color: #EFF6FF;
+  color: #2F6BFF;
+  font-weight: 700;
+}
+
+.dary-select-option-text {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #0B2A4A;
+  line-height: 1.3;
+  flex: 1;
+  word-break: break-word;
+}
+
+.dary-select-option.is-selected .dary-select-option-text {
+  color: #2F6BFF;
+  font-weight: 700;
+}
+
+/* Option Meta (Count, Badge, Checkmark) */
+.dary-select-option-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.dary-select-option-count {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #64748B;
+  background: #F1F5F9;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.dary-select-option.is-selected .dary-select-option-count {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.dary-select-option-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #B69F77;
+  background: rgba(182, 159, 119, 0.12);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.dary-select-check {
+  color: #2F6BFF;
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.dary-select-empty {
+  padding: 1.25rem 0.85rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: #94A3B8;
+  font-weight: 600;
+}
+
+/* Compact Variant (e.g. for Results Toolbar / Sort By) */
+.dary-select-container.is-compact .dary-select-trigger {
+  height: 40px;
+  padding-inline: 0.85rem 0.75rem;
+  border-radius: 12px;
+}
+
+.dary-select-container.is-compact .dary-select-texts {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+
+.dary-select-container.is-compact .dary-select-label {
+  display: none;
+}
+
+.dary-select-container.is-compact .dary-select-value {
+  font-size: 0.84rem;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .dary-select-trigger {
+    height: 50px;
+    border-radius: 12px;
+  }
+
+  .dary-select-menu {
+    max-height: 220px;
+    max-width: 100%;
+  }
+
+  .dary-select-option {
+    min-height: 44px;
+    padding: 0.6rem 0.85rem;
+  }
+
+  .dary-select-option-text {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .dary-select-trigger {
+    height: 48px;
+    border-radius: 12px;
+    padding-inline: 0.75rem;
+  }
+
+  .dary-select-label {
+    font-size: 0.7rem;
+  }
+
+  .dary-select-value {
+    font-size: 0.82rem;
+  }
+
+  .dary-select-menu {
+    max-height: 210px;
+    border-radius: 12px;
+  }
+
+  .dary-select-container.is-compact .dary-select-trigger {
+    height: 40px;
+  }
+}

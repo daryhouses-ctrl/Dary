@@ -828,3 +828,55 @@
     box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
   }
 }
+
+/* Responsive Breakpoints */
+@media (max-width: 768px) {
+  .dary-rbac-page {
+    padding: 1rem;
+  }
+
+  .dary-rbac-title-box h1 {
+    font-size: 1.4rem;
+  }
+
+  .dary-rbac-actions {
+    width: 100%;
+  }
+
+  .dary-rbac-btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .search-input-wrap {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .matrix-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .rbac-matrix-table {
+    min-width: 580px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dary-rbac-page {
+    padding: 0.75rem 0.5rem;
+  }
+
+  .dary-rbac-title-box h1 {
+    font-size: 1.25rem;
+  }
+
+  .dary-rbac-actions {
+    flex-direction: column;
+  }
+
+  .dary-rbac-btn {
+    width: 100%;
+  }
+}

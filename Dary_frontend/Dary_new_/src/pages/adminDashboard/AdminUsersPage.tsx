@@ -787,7 +787,7 @@ export default function AdminUsersPage() {
       <div className="dary-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'center' }}>
           {/* Search Box */}
-          <div style={{ flex: '1 1 240px' }}>
+          <div style={{ flex: '1 1 220px', minWidth: 0 }}>
             <input
               type="text"
               value={search}
@@ -808,7 +808,7 @@ export default function AdminUsersPage() {
           </div>
 
           {/* Role Filter */}
-          <div style={{ minWidth: '160px' }}>
+          <div style={{ flex: '1 1 140px', minWidth: 0 }}>
             <select
               value={roleFilter}
               onChange={(e) => {
@@ -834,7 +834,7 @@ export default function AdminUsersPage() {
           </div>
 
           {/* Status Filter */}
-          <div style={{ minWidth: '160px' }}>
+          <div style={{ flex: '1 1 140px', minWidth: 0 }}>
             <select
               value={statusFilter}
               onChange={(e) => {
