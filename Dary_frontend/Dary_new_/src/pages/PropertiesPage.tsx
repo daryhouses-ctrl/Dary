@@ -27,20 +27,21 @@ interface PriceRangeOption {
 }
 
 const priceRanges: PriceRangeOption[] = [
-  { value: '', label: { ar: 'جميع الأسعار', en: 'All Prices' }, min: undefined, max: undefined },
+  { value: '', label: { ar: 'أي ميزانية', en: 'Any Budget' }, min: undefined, max: undefined },
   { value: 'under-1000', label: { ar: 'أقل من 1,000 ج.م', en: 'Under 1,000 EGP' }, min: undefined, max: 1000 },
-  { value: '1000-2000', label: { ar: '1,000 - 2,000 ج.م', en: '1,000 - 2,000 EGP' }, min: 1000, max: 2000 },
-  { value: '2000-3000', label: { ar: '2,000 - 3,000 ج.م', en: '2,000 - 3,000 EGP' }, min: 2000, max: 3000 },
-  { value: '3000-5000', label: { ar: '3,000 - 5,000 ج.م', en: '3,000 - 5,000 EGP' }, min: 3000, max: 5000 },
+  { value: '1000-2000', label: { ar: '1,000 – 2,000 ج.م', en: '1,000 – 2,000 EGP' }, min: 1000, max: 2000 },
+  { value: '2000-3000', label: { ar: '2,000 – 3,000 ج.م', en: '2,000 – 3,000 EGP' }, min: 2000, max: 3000 },
+  { value: '3000-5000', label: { ar: '3,000 – 5,000 ج.م', en: '3,000 – 5,000 EGP' }, min: 3000, max: 5000 },
+  { value: '3000-6000', label: { ar: '3,000 – 6,000 ج.م', en: '3,000 – 6,000 EGP' }, min: 3000, max: 6000 },
   { value: 'over-5000', label: { ar: 'أكثر من 5,000 ج.م', en: 'Over 5,000 EGP' }, min: 5000, max: undefined },
   { value: 'custom', label: { ar: 'تحديد ميزانية مخصصة...', en: 'Custom Price Range...' }, min: undefined, max: undefined },
 ];
 
 const baseCityOptions = [
-  { value: '', label: { ar: 'جميع المحافظات والمدن', en: 'All Governorates & Cities' } },
-  { value: 'cairo', label: { ar: 'القاهرة الكبرى (مدينة نصر / العباسية / المعادي)', en: 'Cairo (Nasr City / Maadi)' } },
-  { value: 'new_cairo', label: { ar: 'القاهرة الجديدة / التجمع الخامس / الرحاب', en: 'New Cairo / Fifth Settlement' } },
-  { value: 'giza', label: { ar: 'الجيزة (الدقي / المهندسين / فيصل / الهرم)', en: 'Giza (Dokki / Mohandessin)' } },
+  { value: '', label: { ar: 'جميع المواقع', en: 'All Locations' } },
+  { value: 'cairo', label: { ar: 'القاهرة الكبرى (مدينة نصر / المعادي)', en: 'Cairo (Nasr City / Maadi)' } },
+  { value: 'new_cairo', label: { ar: 'القاهرة الجديدة / التجمع الخامس', en: 'New Cairo / Fifth Settlement' } },
+  { value: 'giza', label: { ar: 'الجيزة (الدقي / المهندسين)', en: 'Giza (Dokki / Mohandessin)' } },
   { value: 'october', label: { ar: '6 أكتوبر والشيخ زايد', en: '6th of October & Sheikh Zayed' } },
   { value: 'mansoura', label: { ar: 'المنصورة / الدقهلية', en: 'Mansoura / Dakahlia' } },
   { value: 'tanta', label: { ar: 'طنطا / الغربية', en: 'Tanta / Gharbia' } },
@@ -76,36 +77,36 @@ const baseUniversityOptions = [
 ];
 
 const typeOptions = [
-  { value: '', label: { ar: 'جميع أنواع السكن', en: 'All Housing Types' } },
-  { value: 'shared_apartment', label: { ar: 'شقة مشتركة (Shared Apartment)', en: 'Shared Apartment' } },
-  { value: 'private_room', label: { ar: 'غرفة خاصة (Private Room)', en: 'Private Room' } },
-  { value: 'shared_room', label: { ar: 'غرفة مشتركة (Shared Room)', en: 'Shared Room' } },
-  { value: 'studio', label: { ar: 'استوديو مستقل (Studio)', en: 'Studio' } },
-  { value: 'entire_apartment', label: { ar: 'شقة كاملة (Entire Apartment)', en: 'Entire Apartment' } },
+  { value: '', label: { ar: 'جميع الأنواع', en: 'All Types' } },
+  { value: 'shared_apartment', label: { ar: 'سكن طلابي (شقة مشتركة)', en: 'Shared Apartment' } },
+  { value: 'private_room', label: { ar: 'غرفة خاصة', en: 'Private Room' } },
+  { value: 'shared_room', label: { ar: 'غرفة مشتركة', en: 'Shared Room' } },
+  { value: 'studio', label: { ar: 'استوديو مستقل', en: 'Studio' } },
+  { value: 'entire_apartment', label: { ar: 'شقة كاملة', en: 'Entire Apartment' } },
 ];
 
 const roomTypeOptions = [
   { value: '', label: { ar: 'جميع أنواع الغرف', en: 'All Room Types' } },
-  { value: 'SINGLE', label: { ar: '🛏️ غرفة فردية (سرير واحد)', en: '🛏️ Single Room (1 Bed)' } },
-  { value: 'DOUBLE', label: { ar: '🛏️ غرفة ثنائية (سريران)', en: '🛏️ Double Room (2 Beds)' } },
-  { value: 'TRIPLE', label: { ar: '🛏️ غرفة ثلاثية (3 أسِرّة)', en: '🛏️ Triple Room (3 Beds)' } },
-  { value: 'QUAD', label: { ar: '🛏️ غرفة رباعية (4 أسِرّة)', en: '🛏️ Quad Room (4 Beds)' } },
+  { value: 'SINGLE', label: { ar: 'غرفة فردية (سرير واحد)', en: 'Single Room (1 Bed)' } },
+  { value: 'DOUBLE', label: { ar: 'غرفة ثنائية (سريران)', en: 'Double Room (2 Beds)' } },
+  { value: 'TRIPLE', label: { ar: 'غرفة ثلاثية (3 أسرة)', en: 'Triple Room (3 Beds)' } },
+  { value: 'QUAD', label: { ar: 'غرفة رباعية (4 أسرة)', en: 'Quad Room (4 Beds)' } },
 ];
 
 const genderOptions = [
-  { value: '', label: { ar: 'مخصص لـ: الكل (شباب وبنات)', en: 'Gender: All (Male & Female)' } },
-  { value: 'male_only', label: { ar: '👨‍🎓 سكن شباب فقط', en: '👨‍🎓 Male Students Only' } },
-  { value: 'female_only', label: { ar: '👩‍🎓 سكن بنات فقط', en: '👩‍🎓 Female Students Only' } },
+  { value: '', label: { ar: 'الكل (شباب وبنات)', en: 'All (Male & Female)' } },
+  { value: 'male_only', label: { ar: 'سكن شباب فقط', en: 'Male Students Only' } },
+  { value: 'female_only', label: { ar: 'سكن بنات فقط', en: 'Female Students Only' } },
 ];
 
 const classOptions = [
-  { value: '', label: { ar: 'فئة السكن: جميع الفئات', en: 'Class: All Classes' } },
-  { value: 'STANDARD', label: { ar: 'قياسي / اقتصادي (Standard)', en: 'Standard / Economy' } },
-  { value: 'LUXURY', label: { ar: '⭐ فاخر / مميز (Luxury)', en: '⭐ Luxury / Premium' } },
+  { value: '', label: { ar: 'جميع الفئات', en: 'All Classes' } },
+  { value: 'STANDARD', label: { ar: 'قياسي / اقتصادي', en: 'Standard / Economy' } },
+  { value: 'LUXURY', label: { ar: 'فاخر / مميز', en: 'Luxury / Premium' } },
 ];
 
 const bedroomOptions = [
-  { value: '', label: { ar: 'عدد الغرف: أي عدد', en: 'Rooms: Any Count' } },
+  { value: '', label: { ar: 'أي عدد غرف', en: 'Any Number of Rooms' } },
   { value: '1', label: { ar: 'غرفة واحدة (1)', en: '1 Room' } },
   { value: '2', label: { ar: 'غرفتان (2)', en: '2 Rooms' } },
   { value: '3', label: { ar: '3 غرف', en: '3 Rooms' } },
@@ -113,12 +114,38 @@ const bedroomOptions = [
 ];
 
 const distanceOptions = [
-  { value: '', label: { ar: 'المسافة للجامعة: أي مسافة', en: 'Distance to Univ: Any' } },
-  { value: '1', label: { ar: '🚶 أقل من 1 كم (دقائق مشياً)', en: '🚶 Within 1 km (Walking)' } },
+  { value: '', label: { ar: 'أي مسافة عن الجامعة', en: 'Any Distance' } },
+  { value: '1', label: { ar: 'أقل من 1 كم (دقائق مشياً)', en: 'Within 1 km (Walking)' } },
   { value: '2', label: { ar: 'أقل من 2 كم عن الجامعة', en: 'Within 2 km' } },
   { value: '5', label: { ar: 'أقل من 5 كم عن الجامعة', en: 'Within 5 km' } },
   { value: '10', label: { ar: 'أقل من 10 كم عن الجامعة', en: 'Within 10 km' } },
 ];
+
+const sortOptions = [
+  { value: 'newest', label: { ar: 'الأحدث أولاً', en: 'Newest First' } },
+  { value: 'recommended', label: { ar: 'الموصى به', en: 'Recommended' } },
+  { value: 'popular', label: { ar: 'الأكثر طلباً ومشاهدة', en: 'Most Popular' } },
+  { value: 'nearest', label: { ar: 'الأقرب لموقعي (GPS)', en: 'Nearest to Me' } },
+  { value: 'university_distance', label: { ar: 'الأقرب للجامعة', en: 'Closest to University' } },
+  { value: 'price_asc', label: { ar: 'السعر: من الأقل للأعلى', en: 'Price: Low to High' } },
+  { value: 'price_desc', label: { ar: 'السعر: من الأعلى للأقل', en: 'Price: High to Low' } },
+];
+
+const ChevronDownIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
 
 export default function PropertiesPage() {
   const { t, locale } = useLocale();
@@ -498,6 +525,225 @@ export default function PropertiesPage() {
 
   const hasActiveFilters = activeFilterCount > 0;
 
+  // Derived Labels for Main Dropdown fields
+  const currentCityLabel = useMemo(() => {
+    if (!city) return locale === 'ar' ? 'جميع المواقع' : 'All Locations';
+    const found = cityOptions.find((c) => c.value === city);
+    return found ? found.label[locale] : city;
+  }, [city, cityOptions, locale]);
+
+  const currentUniversityLabel = useMemo(() => {
+    if (!university) return locale === 'ar' ? 'جميع الجامعات' : 'All Universities';
+    const found = universityOptions.find((u) => u.value === university);
+    return found ? found.label[locale] : university;
+  }, [university, universityOptions, locale]);
+
+  const currentTypeLabel = useMemo(() => {
+    if (!propertyType) return locale === 'ar' ? 'جميع الأنواع' : 'All Types';
+    const found = typeOptions.find((t) => t.value === propertyType);
+    return found ? found.label[locale] : propertyType;
+  }, [propertyType, locale]);
+
+  const currentBudgetLabel = useMemo(() => {
+    if (!priceRange) return locale === 'ar' ? 'أي ميزانية' : 'Any Budget';
+    if (priceRange === 'custom') {
+      if (customMinPrice || customMaxPrice) {
+        return `${customMinPrice || 0} – ${customMaxPrice || '...'} ${locale === 'ar' ? 'ج.م' : 'EGP'}`;
+      }
+      return locale === 'ar' ? 'ميزانية مخصصة' : 'Custom Budget';
+    }
+    const found = priceRanges.find((p) => p.value === priceRange);
+    return found ? found.label[locale] : priceRange;
+  }, [priceRange, customMinPrice, customMaxPrice, locale]);
+
+  // Active filters list for chips display
+  const activeFiltersList = useMemo(() => {
+    const list: Array<{ id: string; label: string; value: string; onRemove: () => void }> = [];
+
+    if (searchTerm.trim()) {
+      list.push({
+        id: 'search',
+        label: locale === 'ar' ? 'البحث' : 'Search',
+        value: searchTerm.trim(),
+        onRemove: () => {
+          setSearchTerm('');
+          setDebouncedSearch('');
+        },
+      });
+    }
+
+    if (city) {
+      const found = cityOptions.find((o) => o.value === city);
+      list.push({
+        id: 'city',
+        label: locale === 'ar' ? 'الموقع' : 'Location',
+        value: found ? found.label[locale] : city,
+        onRemove: () => setCity(''),
+      });
+    }
+
+    if (university) {
+      const found = universityOptions.find((u) => u.value === university);
+      list.push({
+        id: 'university',
+        label: locale === 'ar' ? 'قرب للجامعة' : 'Near University',
+        value: found ? found.label[locale] : university,
+        onRemove: () => setUniversity(''),
+      });
+    }
+
+    if (propertyType) {
+      const found = typeOptions.find((t) => t.value === propertyType);
+      list.push({
+        id: 'propertyType',
+        label: locale === 'ar' ? 'نوع السكن' : 'Housing Type',
+        value: found ? found.label[locale] : propertyType,
+        onRemove: () => setPropertyType(''),
+      });
+    }
+
+    if (priceRange) {
+      if (priceRange === 'custom') {
+        const val = `${customMinPrice || 0} – ${customMaxPrice || (locale === 'ar' ? 'غير محدد' : 'Any')} ${locale === 'ar' ? 'جنيه' : 'EGP'}`;
+        list.push({
+          id: 'priceRange',
+          label: locale === 'ar' ? 'الميزانية' : 'Budget',
+          value: val,
+          onRemove: () => {
+            setPriceRange('');
+            setCustomMinPrice('');
+            setCustomMaxPrice('');
+          },
+        });
+      } else {
+        const found = priceRanges.find((p) => p.value === priceRange);
+        list.push({
+          id: 'priceRange',
+          label: locale === 'ar' ? 'الميزانية' : 'Budget',
+          value: found ? found.label[locale] : priceRange,
+          onRemove: () => setPriceRange(''),
+        });
+      }
+    }
+
+    if (availableOnly) {
+      list.push({
+        id: 'availableOnly',
+        label: locale === 'ar' ? 'الحجز' : 'Booking',
+        value: locale === 'ar' ? 'متاح للحجز الفوري' : 'Available Now',
+        onRemove: () => setAvailableOnly(false),
+      });
+    }
+
+    if (isFurnished) {
+      list.push({
+        id: 'isFurnished',
+        label: locale === 'ar' ? 'الفرش' : 'Furnishing',
+        value: locale === 'ar' ? 'مفروش بالكامل' : 'Fully Furnished',
+        onRemove: () => setIsFurnished(false),
+      });
+    }
+
+    if (internetIncluded) {
+      list.push({
+        id: 'internetIncluded',
+        label: locale === 'ar' ? 'الإنترنت' : 'Internet',
+        value: locale === 'ar' ? 'شامل الإنترنت (Wi-Fi)' : 'Wi-Fi Included',
+        onRemove: () => setInternetIncluded(false),
+      });
+    }
+
+    if (billsIncluded) {
+      list.push({
+        id: 'billsIncluded',
+        label: locale === 'ar' ? 'الفواتير' : 'Bills',
+        value: locale === 'ar' ? 'شامل الفواتير' : 'Bills Included',
+        onRemove: () => setBillsIncluded(false),
+      });
+    }
+
+    if (genderAllowed) {
+      const found = genderOptions.find((g) => g.value === genderAllowed);
+      list.push({
+        id: 'genderAllowed',
+        label: locale === 'ar' ? 'السكن مخصص لـ' : 'Gender',
+        value: found ? found.label[locale] : genderAllowed,
+        onRemove: () => setGenderAllowed(''),
+      });
+    }
+
+    if (roomType) {
+      const found = roomTypeOptions.find((r) => r.value === roomType);
+      list.push({
+        id: 'roomType',
+        label: locale === 'ar' ? 'نوع الغرفة' : 'Room Type',
+        value: found ? found.label[locale] : roomType,
+        onRemove: () => setRoomType(''),
+      });
+    }
+
+    if (bedrooms) {
+      const found = bedroomOptions.find((b) => b.value === bedrooms);
+      list.push({
+        id: 'bedrooms',
+        label: locale === 'ar' ? 'الغرف' : 'Rooms',
+        value: found ? found.label[locale] : bedrooms,
+        onRemove: () => setBedrooms(''),
+      });
+    }
+
+    if (propertyClass) {
+      const found = classOptions.find((c) => c.value === propertyClass);
+      list.push({
+        id: 'propertyClass',
+        label: locale === 'ar' ? 'الفئة' : 'Class',
+        value: found ? found.label[locale] : propertyClass,
+        onRemove: () => setPropertyClass(''),
+      });
+    }
+
+    if (maxDistance) {
+      const found = distanceOptions.find((d) => d.value === maxDistance);
+      list.push({
+        id: 'maxDistance',
+        label: locale === 'ar' ? 'المسافة' : 'Distance',
+        value: found ? found.label[locale] : maxDistance,
+        onRemove: () => setMaxDistance(''),
+      });
+    }
+
+    return list;
+  }, [
+    searchTerm,
+    city,
+    cityOptions,
+    university,
+    universityOptions,
+    propertyType,
+    priceRange,
+    customMinPrice,
+    customMaxPrice,
+    availableOnly,
+    isFurnished,
+    internetIncluded,
+    billsIncluded,
+    genderAllowed,
+    roomType,
+    bedrooms,
+    propertyClass,
+    maxDistance,
+    locale,
+  ]);
+
+  const activeAdvancedCount = [
+    Boolean(genderAllowed),
+    Boolean(roomType),
+    Boolean(bedrooms),
+    Boolean(propertyClass),
+    Boolean(maxDistance),
+    priceRange === 'custom' && Boolean(customMinPrice || customMaxPrice),
+  ].filter(Boolean).length;
+
   const handleResetFilters = () => {
     setSearchTerm('');
     setDebouncedSearch('');
@@ -528,53 +774,32 @@ export default function PropertiesPage() {
           <p className="properties-subtitle">{t.properties_subtitle}</p>
         </header>
 
-        {/* Main Filter Container */}
-        <div
-          style={{
-            background: '#FFFFFF',
-            padding: '1.15rem 1.25rem',
-            borderRadius: '18px',
-            border: '1px solid rgba(11, 42, 74, 0.08)',
-            boxShadow: '0 6px 24px rgba(11, 42, 74, 0.04)',
-            marginBottom: '1.5rem',
-          }}
-        >
-          {/* Row 1: Primary Filters */}
-          <div className="properties-filter-bar" style={{ marginBottom: 0, padding: 0, border: 'none', boxShadow: 'none' }}>
-            {/* Keyword Search */}
-            <div className="filter-input-wrap" style={{ flex: '1.8 1 250px' }}>
-              <svg
-                className="filter-icon"
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+        {/* Main Filters Card Container */}
+        <div className="dary-filters-card">
+          {/* Row 1: Primary Filters Grid */}
+          <div className="dary-main-filters-grid">
+            {/* 1. Keyword / Location Search */}
+            <div className="dary-search-box">
               <input
                 type="text"
-                className="filter-input"
+                className="dary-search-input"
                 placeholder={
                   locale === 'ar'
-                    ? 'ابحث بالاسم، المدينة، الحي، الجامعة أو المرافق...'
-                    : 'Search by title, city, district, university, or amenity...'
+                    ? 'ابحث بالاسم، أو المدينة، أو المنطقة...'
+                    : 'Search by title, city, or district...'
                 }
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                aria-label={t.properties_filter_search_placeholder}
+                aria-label="Search"
               />
               {searchTerm && (
                 <button
                   type="button"
-                  className="filter-clear-input"
-                  onClick={() => setSearchTerm('')}
+                  className="dary-search-clear"
+                  onClick={() => {
+                    setSearchTerm('');
+                    setDebouncedSearch('');
+                  }}
                   aria-label="Clear search"
                 >
                   ✕
@@ -582,69 +807,47 @@ export default function PropertiesPage() {
               )}
             </div>
 
-            {/* Location Dropdown (Governorate / City with live counts) */}
-            <div className="filter-select-wrap" style={{ flex: '1.1 1 175px' }}>
+            {/* 2. Location (City / Governorate) */}
+            <div className="dary-filter-field">
+              <div className="dary-field-texts">
+                <span className="dary-field-label">{locale === 'ar' ? 'الموقع' : 'Location'}</span>
+                <span className="dary-field-value">{currentCityLabel}</span>
+              </div>
+              <span className="dary-field-chevron">
+                <ChevronDownIcon />
+              </span>
               <select
-                className="filter-select"
+                className="dary-field-select"
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                aria-label={t.properties_filter_location}
+                aria-label={locale === 'ar' ? 'الموقع' : 'Location'}
               >
                 {cityOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.value
                       ? `${opt.label[locale]}${opt.count > 0 ? ` (${opt.count})` : ''}`
-                      : `📍 ${t.properties_filter_location}: ${opt.label[locale]}`}
+                      : opt.label[locale]}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Nearest University Dropdown */}
-            <div className="filter-select-wrap" style={{ flex: '1.1 1 170px' }}>
+            {/* 3. University */}
+            <div className="dary-filter-field">
+              <div className="dary-field-texts">
+                <span className="dary-field-label">{locale === 'ar' ? 'الجامعة' : 'University'}</span>
+                <span className="dary-field-value">{currentUniversityLabel}</span>
+              </div>
+              <span className="dary-field-chevron">
+                <ChevronDownIcon />
+              </span>
               <select
-                className="filter-select"
+                className="dary-field-select"
                 value={university}
                 onChange={(e) => setUniversity(e.target.value)}
-                aria-label={locale === 'ar' ? 'الجامعة الأقرب' : 'Nearest University'}
+                aria-label={locale === 'ar' ? 'الجامعة' : 'University'}
               >
                 {universityOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.value
-                      ? `🎓 ${opt.label[locale]}`
-                      : locale === 'ar'
-                      ? '🎓 الجامعة: جميع الجامعات'
-                      : '🎓 University: All'}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Property Type Dropdown */}
-            <div className="filter-select-wrap" style={{ flex: '1 1 160px' }}>
-              <select
-                className="filter-select"
-                value={propertyType}
-                onChange={(e) => setPropertyType(e.target.value)}
-                aria-label={t.properties_filter_type}
-              >
-                {typeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.value ? opt.label[locale] : `🏢 ${t.properties_filter_type}: ${opt.label[locale]}`}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Gender Allowed Dropdown */}
-            <div className="filter-select-wrap" style={{ flex: '1 1 155px' }}>
-              <select
-                className="filter-select"
-                value={genderAllowed}
-                onChange={(e) => setGenderAllowed(e.target.value)}
-                aria-label={locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}
-              >
-                {genderOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
                     {opt.label[locale]}
                   </option>
@@ -652,410 +855,370 @@ export default function PropertiesPage() {
               </select>
             </div>
 
-            {/* Price Range Dropdown */}
-            <div className="filter-select-wrap" style={{ flex: '1 1 155px' }}>
+            {/* 4. Property Type */}
+            <div className="dary-filter-field">
+              <div className="dary-field-texts">
+                <span className="dary-field-label">{locale === 'ar' ? 'نوع السكن' : 'Property Type'}</span>
+                <span className="dary-field-value">{currentTypeLabel}</span>
+              </div>
+              <span className="dary-field-chevron">
+                <ChevronDownIcon />
+              </span>
               <select
-                className="filter-select"
-                value={priceRange}
-                onChange={(e) => setPriceRange(e.target.value)}
-                aria-label={t.properties_filter_price}
+                className="dary-field-select"
+                value={propertyType}
+                onChange={(e) => setPropertyType(e.target.value)}
+                aria-label={locale === 'ar' ? 'نوع السكن' : 'Property Type'}
               >
-                {priceRanges.map((opt) => (
+                {typeOptions.map((opt) => (
                   <option key={opt.value} value={opt.value}>
-                    {opt.value ? opt.label[locale] : `💰 ${t.properties_filter_price}: ${opt.label[locale]}`}
+                    {opt.label[locale]}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Mobile Filter Toggle Button */}
+            {/* 5. Budget */}
+            <div className="dary-filter-field">
+              <div className="dary-field-texts">
+                <span className="dary-field-label">{locale === 'ar' ? 'الميزانية' : 'Budget'}</span>
+                <span className="dary-field-value">{currentBudgetLabel}</span>
+              </div>
+              <span className="dary-field-chevron">
+                <ChevronDownIcon />
+              </span>
+              <select
+                className="dary-field-select"
+                value={priceRange}
+                onChange={(e) => setPriceRange(e.target.value)}
+                aria-label={locale === 'ar' ? 'الميزانية' : 'Budget'}
+              >
+                {priceRanges.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label[locale]}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* 6. Search Submit Button */}
             <button
               type="button"
-              className="mobile-filter-trigger"
-              onClick={() => setMobileDrawerOpen(true)}
-              aria-label={t.properties_mobile_filters_btn}
+              className="dary-search-btn"
+              onClick={() => {
+                setDebouncedSearch(searchTerm);
+                const el = document.getElementById('properties-results-toolbar');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }}
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+              {locale === 'ar' ? 'بحث' : 'Search'}
+            </button>
+          </div>
+
+          {/* Row 2: Quick Filter Chips + Advanced Filters Toggle */}
+          <div className="dary-quick-filters-row">
+            <div className="dary-quick-chips">
+              <button
+                type="button"
+                className={`dary-quick-chip ${availableOnly ? 'is-active' : ''}`}
+                onClick={() => setAvailableOnly((prev) => !prev)}
               >
-                <line x1="4" y1="21" x2="4" y2="14" />
-                <line x1="4" y1="10" x2="4" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="12" />
-                <line x1="12" y1="8" x2="12" y2="3" />
-                <line x1="20" y1="21" x2="20" y2="16" />
-                <line x1="20" y1="12" x2="20" y2="3" />
-                <line x1="1" y1="14" x2="7" y2="14" />
-                <line x1="9" y1="8" x2="15" y2="8" />
-                <line x1="17" y1="16" x2="23" y2="16" />
-              </svg>
-              <span>{t.properties_mobile_filters_btn}</span>
-              {activeFilterCount > 0 && (
-                <span className="mobile-filter-badge">{activeFilterCount}</span>
+                {locale === 'ar' ? 'متاح للحجز الفوري' : 'Instant Booking'}
+              </button>
+
+              <button
+                type="button"
+                className={`dary-quick-chip ${isFurnished ? 'is-active' : ''}`}
+                onClick={() => setIsFurnished((prev) => !prev)}
+              >
+                {locale === 'ar' ? 'مفروش بالكامل' : 'Fully Furnished'}
+              </button>
+
+              <button
+                type="button"
+                className={`dary-quick-chip ${internetIncluded ? 'is-active' : ''}`}
+                onClick={() => setInternetIncluded((prev) => !prev)}
+              >
+                {locale === 'ar' ? 'شامل الإنترنت (Wi-Fi)' : 'Wi-Fi Included'}
+              </button>
+
+              <button
+                type="button"
+                className={`dary-quick-chip ${billsIncluded ? 'is-active' : ''}`}
+                onClick={() => setBillsIncluded((prev) => !prev)}
+              >
+                {locale === 'ar' ? 'شامل الفواتير' : 'Bills Included'}
+              </button>
+            </div>
+
+            <div className="dary-quick-divider" />
+
+            <button
+              type="button"
+              className={`dary-advanced-toggle ${showAdvancedFilters ? 'is-open' : ''} ${activeAdvancedCount > 0 ? 'has-active' : ''}`}
+              onClick={() => setShowAdvancedFilters((prev) => !prev)}
+            >
+              <span>{locale === 'ar' ? 'فلاتر متقدمة' : 'Advanced Filters'}</span>
+              <span className={`dary-advanced-arrow ${showAdvancedFilters ? 'is-rotated' : ''}`}>
+                <ChevronDownIcon />
+              </span>
+              {activeAdvancedCount > 0 && (
+                <span className="dary-filter-count-badge">{activeAdvancedCount}</span>
               )}
             </button>
           </div>
 
-          {/* Custom Price Range Inputs (when "custom" is selected) */}
-          {priceRange === 'custom' && (
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.75rem',
-                flexWrap: 'wrap',
-                marginTop: '0.85rem',
-                padding: '0.75rem 1rem',
-                backgroundColor: '#F8FAFC',
-                borderRadius: '12px',
-                border: '1px solid #E2E8F0',
-              }}
-            >
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0B2A4A' }}>
-                💰 {locale === 'ar' ? 'تحديد السعر الشهري (ج.م):' : 'Monthly Budget (EGP):'}
-              </span>
-              <input
-                type="number"
-                min={0}
-                step={100}
-                placeholder={locale === 'ar' ? 'الحد الأدنى (مثلاً 1200)' : 'Min price (e.g. 1200)'}
-                value={customMinPrice}
-                onChange={(e) => setCustomMinPrice(e.target.value)}
-                style={{
-                  height: '38px',
-                  padding: '0 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  width: '175px',
-                }}
-              />
-              <span style={{ color: '#64748B', fontWeight: 600 }}>—</span>
-              <input
-                type="number"
-                min={0}
-                step={100}
-                placeholder={locale === 'ar' ? 'الحد الأقصى (مثلاً 3500)' : 'Max price (e.g. 3500)'}
-                value={customMaxPrice}
-                onChange={(e) => setCustomMaxPrice(e.target.value)}
-                style={{
-                  height: '38px',
-                  padding: '0 0.75rem',
-                  borderRadius: '8px',
-                  border: '1px solid #CBD5E1',
-                  fontSize: '0.85rem',
-                  width: '175px',
-                }}
-              />
-            </div>
-          )}
-
-          {/* Row 2: Quick Filter Chips + Advanced Filters Toggle */}
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              flexWrap: 'wrap',
-              gap: '0.6rem',
-              marginTop: '0.9rem',
-              paddingTop: '0.85rem',
-              borderTop: '1px solid #F1F5F9',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-              {/* Quick Chip: Available Now */}
-              <button
-                type="button"
-                onClick={() => setAvailableOnly((prev) => !prev)}
-                style={{
-                  padding: '0.38rem 0.8rem',
-                  borderRadius: '999px',
-                  border: availableOnly ? '1px solid #10B981' : '1px solid #E2E8F0',
-                  backgroundColor: availableOnly ? '#ECFDF5' : '#F8FAFC',
-                  color: availableOnly ? '#047857' : '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                🟢 {locale === 'ar' ? 'متاح للحجز الفوري فقط' : 'Available Now Only'}
-              </button>
-
-              {/* Quick Chip: Furnished */}
-              <button
-                type="button"
-                onClick={() => setIsFurnished((prev) => !prev)}
-                style={{
-                  padding: '0.38rem 0.8rem',
-                  borderRadius: '999px',
-                  border: isFurnished ? '1px solid #2F6BFF' : '1px solid #E2E8F0',
-                  backgroundColor: isFurnished ? '#EFF6FF' : '#F8FAFC',
-                  color: isFurnished ? '#1D4ED8' : '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                🛋️ {locale === 'ar' ? 'مفروش بالكامل' : 'Fully Furnished'}
-              </button>
-
-              {/* Quick Chip: Internet Included */}
-              <button
-                type="button"
-                onClick={() => setInternetIncluded((prev) => !prev)}
-                style={{
-                  padding: '0.38rem 0.8rem',
-                  borderRadius: '999px',
-                  border: internetIncluded ? '1px solid #2F6BFF' : '1px solid #E2E8F0',
-                  backgroundColor: internetIncluded ? '#EFF6FF' : '#F8FAFC',
-                  color: internetIncluded ? '#1D4ED8' : '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                📶 {locale === 'ar' ? 'شامل الإنترنت (Wi-Fi)' : 'Wi-Fi Included'}
-              </button>
-
-              {/* Quick Chip: Bills Included */}
-              <button
-                type="button"
-                onClick={() => setBillsIncluded((prev) => !prev)}
-                style={{
-                  padding: '0.38rem 0.8rem',
-                  borderRadius: '999px',
-                  border: billsIncluded ? '1px solid #2F6BFF' : '1px solid #E2E8F0',
-                  backgroundColor: billsIncluded ? '#EFF6FF' : '#F8FAFC',
-                  color: billsIncluded ? '#1D4ED8' : '#475569',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                💡 {locale === 'ar' ? 'شامل الفواتير (كهرباء/مياه)' : 'Bills Included'}
-              </button>
-
-              {/* Toggle More Precision Filters */}
-              <button
-                type="button"
-                onClick={() => setShowAdvancedFilters((prev) => !prev)}
-                style={{
-                  padding: '0.38rem 0.85rem',
-                  borderRadius: '999px',
-                  border:
-                    showAdvancedFilters || roomType || bedrooms || propertyClass || maxDistance
-                      ? '1px solid #0B2A4A'
-                      : '1px solid #CBD5E1',
-                  backgroundColor:
-                    showAdvancedFilters || roomType || bedrooms || propertyClass || maxDistance
-                      ? '#0B2A4A'
-                      : '#FFFFFF',
-                  color:
-                    showAdvancedFilters || roomType || bedrooms || propertyClass || maxDistance
-                      ? '#FFFFFF'
-                      : '#0B2A4A',
-                  fontSize: '0.8rem',
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                }}
-              >
-                ⚙️ {locale === 'ar' ? 'فلاتر متقدمة (الغرف / الفئة / المسافة)' : 'Advanced Filters'}{' '}
-                {showAdvancedFilters ? '▲' : '▼'}
-              </button>
-            </div>
-
-            {hasActiveFilters && (
-              <button
-                type="button"
-                className="filter-reset-btn"
-                onClick={handleResetFilters}
-                style={{ height: '34px', fontSize: '0.8rem', paddingInline: '0.9rem' }}
-              >
-                ✕ {t.properties_reset_filters} ({activeFilterCount})
-              </button>
-            )}
-          </div>
-
-          {/* Collapsible Advanced Precision Row */}
-          {(showAdvancedFilters || Boolean(roomType || bedrooms || propertyClass || maxDistance)) && (
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
-                gap: '0.75rem',
-                marginTop: '0.85rem',
-                paddingTop: '0.85rem',
-                borderTop: '1px dashed #E2E8F0',
-              }}
-            >
-              {/* Room Type (SINGLE / DOUBLE / TRIPLE / QUAD) */}
-              <div className="filter-select-wrap">
+          {/* Row 3: Collapsible Advanced Filters Panel */}
+          {showAdvancedFilters && (
+            <div className="dary-advanced-panel">
+              {/* Gender Allowed */}
+              <div className="dary-filter-field">
+                <div className="dary-field-texts">
+                  <span className="dary-field-label">{locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}</span>
+                  <span className="dary-field-value">
+                    {genderOptions.find((g) => g.value === genderAllowed)?.label[locale] || genderOptions[0].label[locale]}
+                  </span>
+                </div>
+                <span className="dary-field-chevron"><ChevronDownIcon /></span>
                 <select
-                  className="filter-select"
+                  className="dary-field-select"
+                  value={genderAllowed}
+                  onChange={(e) => setGenderAllowed(e.target.value)}
+                  aria-label={locale === 'ar' ? 'السكن مخصص لـ' : 'Gender Allowed'}
+                >
+                  {genderOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Room Type */}
+              <div className="dary-filter-field">
+                <div className="dary-field-texts">
+                  <span className="dary-field-label">{locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}</span>
+                  <span className="dary-field-value">
+                    {roomTypeOptions.find((r) => r.value === roomType)?.label[locale] || roomTypeOptions[0].label[locale]}
+                  </span>
+                </div>
+                <span className="dary-field-chevron"><ChevronDownIcon /></span>
+                <select
+                  className="dary-field-select"
                   value={roomType}
                   onChange={(e) => setRoomType(e.target.value)}
                   aria-label={locale === 'ar' ? 'نوع الغرفة' : 'Room Type'}
                 >
                   {roomTypeOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
+                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Bedrooms / Rooms Count */}
-              <div className="filter-select-wrap">
+              {/* Bedrooms Count */}
+              <div className="dary-filter-field">
+                <div className="dary-field-texts">
+                  <span className="dary-field-label">{locale === 'ar' ? 'عدد الغرف' : 'Rooms Count'}</span>
+                  <span className="dary-field-value">
+                    {bedroomOptions.find((b) => b.value === bedrooms)?.label[locale] || bedroomOptions[0].label[locale]}
+                  </span>
+                </div>
+                <span className="dary-field-chevron"><ChevronDownIcon /></span>
                 <select
-                  className="filter-select"
+                  className="dary-field-select"
                   value={bedrooms}
                   onChange={(e) => setBedrooms(e.target.value)}
-                  aria-label={t.properties_filter_bedrooms}
+                  aria-label={locale === 'ar' ? 'عدد الغرف' : 'Bedrooms'}
                 >
                   {bedroomOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
+                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Property Class (STANDARD / LUXURY) */}
-              <div className="filter-select-wrap">
+              {/* Property Class */}
+              <div className="dary-filter-field">
+                <div className="dary-field-texts">
+                  <span className="dary-field-label">{locale === 'ar' ? 'فئة السكن' : 'Property Class'}</span>
+                  <span className="dary-field-value">
+                    {classOptions.find((c) => c.value === propertyClass)?.label[locale] || classOptions[0].label[locale]}
+                  </span>
+                </div>
+                <span className="dary-field-chevron"><ChevronDownIcon /></span>
                 <select
-                  className="filter-select"
+                  className="dary-field-select"
                   value={propertyClass}
                   onChange={(e) => setPropertyClass(e.target.value)}
                   aria-label={locale === 'ar' ? 'فئة السكن' : 'Property Class'}
                 >
                   {classOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
+                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Max Distance to University */}
-              <div className="filter-select-wrap">
+              {/* Max Distance */}
+              <div className="dary-filter-field">
+                <div className="dary-field-texts">
+                  <span className="dary-field-label">{locale === 'ar' ? 'المسافة للجامعة' : 'Distance to University'}</span>
+                  <span className="dary-field-value">
+                    {distanceOptions.find((d) => d.value === maxDistance)?.label[locale] || distanceOptions[0].label[locale]}
+                  </span>
+                </div>
+                <span className="dary-field-chevron"><ChevronDownIcon /></span>
                 <select
-                  className="filter-select"
+                  className="dary-field-select"
                   value={maxDistance}
                   onChange={(e) => setMaxDistance(e.target.value)}
                   aria-label={locale === 'ar' ? 'المسافة للجامعة' : 'Distance to University'}
                 >
                   {distanceOptions.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label[locale]}
-                    </option>
+                    <option key={opt.value} value={opt.value}>{opt.label[locale]}</option>
                   ))}
                 </select>
               </div>
+
+              {/* Custom Price Range Row */}
+              {priceRange === 'custom' && (
+                <div className="dary-custom-price-box">
+                  <span className="dary-custom-price-title">
+                    {locale === 'ar' ? 'تحديد الميزانية الشهرية (ج.م):' : 'Monthly Budget Range (EGP):'}
+                  </span>
+                  <div className="dary-custom-price-inputs">
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      placeholder={locale === 'ar' ? 'الحد الأدنى' : 'Min price'}
+                      value={customMinPrice}
+                      onChange={(e) => setCustomMinPrice(e.target.value)}
+                      className="dary-custom-input"
+                    />
+                    <span className="dary-custom-dash">—</span>
+                    <input
+                      type="number"
+                      min={0}
+                      step={100}
+                      placeholder={locale === 'ar' ? 'الحد الأقصى' : 'Max price'}
+                      value={customMaxPrice}
+                      onChange={(e) => setCustomMaxPrice(e.target.value)}
+                      className="dary-custom-input"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Results Metadata & Sorting Row */}
-        <div className="properties-meta-row" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-          <div className="properties-count-wrap" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
-            {!loading && !error && (
-              <span className="properties-count">
-                <strong>
-                  <AnimatedCounter value={sortedProperties.length} duration={600} />
-                </strong>{' '}
-                {t.properties_results_count}
+        {/* Active Filters Section (Shows ONLY when filters are active) */}
+        {activeFiltersList.length > 0 && (
+          <div className="dary-active-filters-bar">
+            <div className="dary-active-filters-content">
+              <span className="dary-active-filters-title">
+                {locale === 'ar' ? 'الفلاتر النشطة:' : 'Active Filters:'}
               </span>
-            )}
-
+              <div className="dary-active-chips-wrap">
+                {activeFiltersList.map((item) => (
+                  <div key={item.id} className="dary-active-chip">
+                    <span className="dary-active-chip-text">
+                      {item.label}: {item.value}
+                    </span>
+                    <button
+                      type="button"
+                      className="dary-active-chip-x"
+                      onClick={item.onRemove}
+                      aria-label={`Remove ${item.label}`}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
             <button
               type="button"
-              onClick={() => setShowMap((prev) => !prev)}
-              style={{
-                padding: '0.45rem 0.9rem',
-                borderRadius: '10px',
-                border: showMap ? '1px solid #2F6BFF' : '1px solid #CBD5E1',
-                backgroundColor: showMap ? '#EFF6FF' : '#FFFFFF',
-                color: showMap ? '#2F6BFF' : '#0B2A4A',
-                fontWeight: 700,
-                fontSize: '0.84rem',
-                cursor: 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
+              className="dary-clear-all-btn"
+              onClick={handleResetFilters}
             >
-              <span>🗺️</span>
+              {locale === 'ar' ? 'مسح الكل' : 'Clear All'}
+            </button>
+          </div>
+        )}
+
+        {/* Results Toolbar */}
+        <div id="properties-results-toolbar" className="dary-results-toolbar">
+          {/* Results Count */}
+          <div className="dary-results-count">
+            {!loading && !error && (
+              <span>
+                <strong>
+                  <AnimatedCounter value={sortedProperties.length} duration={500} />
+                </strong>{' '}
+                {locale === 'ar' ? 'عقارات متوفرة' : 'properties available'}
+              </span>
+            )}
+          </div>
+
+          {/* Actions & Sorting */}
+          <div className="dary-results-actions">
+            <button
+              type="button"
+              className={`dary-toolbar-btn dary-map-btn ${showMap ? 'is-active' : ''}`}
+              onClick={() => setShowMap((prev) => !prev)}
+            >
               <span>
                 {showMap
                   ? locale === 'ar'
                     ? 'إخفاء الخريطة'
                     : 'Hide Map'
                   : locale === 'ar'
-                  ? 'عرض العقارات على الخريطة'
+                  ? 'عرض على الخريطة'
                   : 'Show on Map'}
               </span>
             </button>
 
             <button
               type="button"
+              className={`dary-toolbar-btn dary-gps-btn ${sortBy === 'nearest' ? 'is-active' : ''}`}
               onClick={handleSortNearMe}
               disabled={detectingNearMe}
-              style={{
-                padding: '0.45rem 0.9rem',
-                borderRadius: '10px',
-                border: sortBy === 'nearest' ? '1px solid #10B981' : '1px solid #CBD5E1',
-                backgroundColor: sortBy === 'nearest' ? '#ECFDF5' : '#FFFFFF',
-                color: sortBy === 'nearest' ? '#065F46' : '#0B2A4A',
-                fontWeight: 700,
-                fontSize: '0.84rem',
-                cursor: detectingNearMe ? 'not-allowed' : 'pointer',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '6px',
-              }}
             >
-              <span>📍</span>
               <span>
                 {detectingNearMe
                   ? locale === 'ar'
-                    ? 'جاري تحديد موقعك...'
-                    : 'Detecting GPS...'
+                    ? 'جاري التحديد...'
+                    : 'Detecting...'
                   : locale === 'ar'
                   ? 'الأقرب لموقعي (GPS)'
                   : 'Nearest to Me (GPS)'}
               </span>
             </button>
-          </div>
 
-          <div className="properties-sort-wrap">
-            <label htmlFor="properties-sort-select" className="sort-label">
-              {t.properties_sort_by}:
-            </label>
-            <select
-              id="properties-sort-select"
-              className="sort-select"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="recommended">{t.properties_sort_recommended}</option>
-              <option value="newest">{locale === 'ar' ? 'الأحدث إضافة' : 'Newest First'}</option>
-              <option value="popular">{locale === 'ar' ? 'الأكثر مشاهدة وطلباً' : 'Most Viewed'}</option>
-              <option value="nearest">{locale === 'ar' ? 'الأقرب لموقعي الجغرافي' : 'Nearest to My Location'}</option>
-              <option value="university_distance">{locale === 'ar' ? 'الأقرب للجامعة' : 'Closest to University'}</option>
-              <option value="price_asc">{t.properties_sort_price_asc}</option>
-              <option value="price_desc">{t.properties_sort_price_desc}</option>
-            </select>
+            <div className="dary-sort-field">
+              <span className="dary-sort-label">
+                {locale === 'ar' ? 'ترتيب حسب:' : 'Sort by:'}
+              </span>
+              <div className="dary-sort-box">
+                <span className="dary-sort-current-val">
+                  {sortOptions.find((s) => s.value === sortBy)?.label[locale] || t.properties_sort_recommended}
+                </span>
+                <ChevronDownIcon />
+                <select
+                  id="properties-sort-select"
+                  className="dary-sort-native-select"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  aria-label={t.properties_sort_by}
+                >
+                  {sortOptions.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label[locale]}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
