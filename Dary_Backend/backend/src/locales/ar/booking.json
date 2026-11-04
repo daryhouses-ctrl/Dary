@@ -1,0 +1,22 @@
+{
+  "booking": {
+    "propertyAndRoomRequired": "يجب تحديد العقار والغرفة",
+    "datesRequired": "يجب تحديد تاريخ البداية والنهاية",
+    "invalidDates": "تاريخ البداية أو النهاية غير صحيح",
+    "invalidDateRange": "يجب أن يكون تاريخ النهاية بعد تاريخ البداية",
+    "invalidBedsRequested": "عدد الأسرة المطلوبة غير صحيح",
+    "propertyNotAvailable": "هذا العقار غير متاح حاليًا للحجز",
+    "roomNotAvailable": "هذه الغرفة غير متاحة حاليًا",
+    "notEnoughBeds": "عدد الأسرة المتاحة لا يكفي طلبك",
+    "alreadyRequested": "لديك بالفعل طلب حجز قائم على هذه الغرفة",
+    "notFound": "الحجز غير موجود",
+    "alreadyAssigned": "تم تعيين مسؤول لهذا الحجز بالفعل",
+    "invalidStatusTransition": "لا يمكن تغيير حالة الحجز بهذا الشكل",
+    "contractNotSigned": "لا يمكن إغلاق الحجز قبل توقيع العقد من الطرفين",
+    "cannotCancel": "لا يمكن إلغاء هذا الحجز في حالته الحالية",
+    "created": "تم إرسال طلب الحجز بنجاح",
+    "assigned": "تم تعيينك على هذا الحجز بنجاح",
+    "statusUpdated": "تم تحديث حالة الحجز بنجاح",
+    "cancelled": "تم إلغاء الحجز بنجاح"
+  }
+}

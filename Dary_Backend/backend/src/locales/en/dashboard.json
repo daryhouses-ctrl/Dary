@@ -1,0 +1,26 @@
+{
+  "dashboard": {
+    "reportsStatusFetched": "Reports status retrieved successfully",
+    "reportsFetched": "Reports retrieved successfully",
+    "bookingsStatusFetched": "Bookings status retrieved successfully",
+    "bookingsFetched": "Bookings retrieved successfully",
+    "propertiesStatusFetched": "Properties status retrieved successfully",
+    "propertiesFetched": "Properties retrieved successfully",
+    "usersStatusFetched": "Users status retrieved successfully",
+    "usersFetched": "Users retrieved successfully",
+    "analyticsFetched": "Analytics retrieved successfully",
+    "ownerPropertiesStatusFetched": "Owner properties status retrieved successfully",
+    "ownerBookingsStatusFetched": "Owner bookings status retrieved successfully",
+    "ownerBookingsRevenueFetched": "Owner bookings revenue retrieved successfully",
+    "bookingsRevenueFetched": "Bookings revenue retrieved successfully"
+  },
+  "rentals": {
+    "fetched": "Your rentals retrieved successfully"
+  },
+  "recentlyViewed": {
+    "added": "Property added to recently viewed",
+    "fetched": "Recently viewed properties retrieved successfully",
+    "removed": "Property removed from recently viewed",
+    "cleared": "Recently viewed properties cleared successfully"
+  }
+}

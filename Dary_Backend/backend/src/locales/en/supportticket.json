@@ -1,0 +1,19 @@
+{
+  "ticket": {
+    "notFound": "Support ticket not found",
+    "missingFields": "Category, subject, and description are required",
+    "messageRequired": "A message or attachment is required",
+    "ticketArchived": "Cannot reply to an archived ticket",
+    "attachmentUploadFailed": "Failed to upload attachments, please try again",
+    "newMessageTitle": "New message on your support ticket",
+    "newAttachmentBody": "A new attachment was added",
+    "invalidStatusTransition": "This ticket status change is not allowed",
+    "created": "Support ticket created successfully",
+    "messageSent": "Message sent successfully",
+    "assigned": "You have been assigned to this ticket successfully",
+    "statusUpdated": "Ticket status updated successfully",
+    "myListRetrieved": "Your support tickets retrieved successfully",
+    "retrieved": "Support ticket retrieved successfully",
+    "listRetrieved": "Support tickets retrieved successfully"
+  }
+}

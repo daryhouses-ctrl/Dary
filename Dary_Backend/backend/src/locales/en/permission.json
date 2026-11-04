@@ -1,0 +1,14 @@
+{
+  "permission": {
+    "alreadyExists": "This permission already exists",
+    "notFound": "Permission not found",
+    "idsRequired": "Permission IDs are required",
+    "createSuccess": "Permission created successfully",
+    "updateSuccess": "Permission updated successfully",
+    "deleteSuccess": "Permission deleted successfully",
+    "assignedToRole": "Permissions assigned to role successfully",
+    "removedFromRole": "Permission removed from role successfully",
+    "fetched": "Permissions retrieved successfully",
+    "removeSuccess": "Permission removed successfully"
+  }
+}

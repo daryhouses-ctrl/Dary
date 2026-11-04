@@ -1,0 +1,714 @@
+import { Link, useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { useLocale } from '../../utils/LocaleContext';
+import { hasAdminModuleAccess } from '../../utils/adminPermissions';
+import type { AdminStatusCount, AdminReportItem } from '../../services/adminService';
+import AnimatedCounter from '../../components/common/AnimatedCounter';
+import {
+  useAdminUsersStatus,
+  useAdminPropertiesStatus,
+  useAdminBookingsStatus,
+  useAdminRevenue,
+  useAdminReportsStatus,
+  useAdminAnalytics,
+  useAdminRecentReports,
+} from '../../hooks/useDashboardQueries';
+
+export default function AdminOverviewPage() {
+  const { user } = useAuth();
+  const { locale } = useLocale();
+  const location = useLocation();
+  const basePath = location.pathname.startsWith('/admin-preview') ? '/admin-preview' : '/admin';
+
+  const firstName =
+    user?.name?.split(' ')[0] ||
+    user?.email?.split('@')[0] ||
+    (locale === 'ar' ? 'المدير' : 'Admin');
+
+  // Status & Metric Queries (Cached: 30s)
+  const {
+    data: usersStatus,
+    isLoading: loadingUsers,
+    error: usersErr,
+  } = useAdminUsersStatus();
+  const usersError = usersErr ? (usersErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل إحصائيات المستخدمين.' : 'Could not load users status.') : null;
+
+  const {
+    data: propertiesStatus,
+    isLoading: loadingProps,
+    error: propsErr,
+    refetch: fetchPropsStatus,
+  } = useAdminPropertiesStatus();
+  const propsError = propsErr ? (propsErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل إحصائيات العقارات.' : 'Could not load properties status.') : null;
+
+  const {
+    data: bookingsStatus,
+    isLoading: loadingBookings,
+    error: bookingsErr,
+    refetch: fetchBookingsStatus,
+  } = useAdminBookingsStatus();
+  const bookingsError = bookingsErr ? (bookingsErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل إحصائيات الحجوزات.' : 'Could not load bookings status.') : null;
+
+  const {
+    data: revenueData,
+    isLoading: loadingRevenue,
+    error: revenueErr,
+  } = useAdminRevenue();
+  const revenueError = revenueErr ? (revenueErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل إحصائيات الإيرادات.' : 'Could not load revenue data.') : null;
+
+  const {
+    data: reportsStatus,
+    isLoading: loadingReportsStatus,
+    error: reportsStatusErr,
+  } = useAdminReportsStatus();
+  const reportsStatusError = reportsStatusErr ? (reportsStatusErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل إحصائيات البلاغات.' : 'Could not load reports status.') : null;
+
+  const {
+    data: analyticsData,
+    isLoading: loadingAnalytics,
+    error: analyticsErr,
+    refetch: fetchAnalytics,
+  } = useAdminAnalytics('7d');
+  const analyticsError = analyticsErr ? (analyticsErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل تحليلات المنصة.' : 'Could not load platform analytics.') : null;
+
+  const {
+    data: rawReports,
+    isLoading: loadingReports,
+    error: reportsErr,
+    refetch: fetchRecentReports,
+  } = useAdminRecentReports(5);
+  const recentReports: AdminReportItem[] = Array.isArray(rawReports) ? rawReports : [];
+  const reportsError = reportsErr ? (reportsErr as any)?.message || (locale === 'ar' ? 'تعذر تحميل قائمة البلاغات الحديثة.' : 'Could not load recent reports.') : null;
+
+  // Safe Parsers
+  const normalizeStatusList = (raw: any): AdminStatusCount[] => {
+    if (!raw) return [];
+    const unwrapped =
+      (raw?.status && typeof raw.status === 'object' && !Array.isArray(raw.status))
+        ? raw.status
+        : (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data))
+        ? raw.data
+        : raw;
+
+    if (Array.isArray(unwrapped)) {
+      return unwrapped
+        .filter((item) => item && item.status && String(item.status).toLowerCase() !== 'total')
+        .map((item) => ({
+          status: String(item.status).toUpperCase(),
+          count: typeof item.count === 'number' ? item.count : Number(item.count || 0),
+        }));
+    }
+
+    if (typeof unwrapped === 'object') {
+      return Object.entries(unwrapped)
+        .filter(([key, val]) => {
+          const lower = key.toLowerCase();
+          return lower !== 'total' && lower !== 'totalproperties' && typeof val === 'number';
+        })
+        .map(([key, val]) => ({
+          status: key.toUpperCase(),
+          count: Number(val || 0),
+        }));
+    }
+    return [];
+  };
+
+  const extractTotal = (raw: any, list: AdminStatusCount[]): number => {
+    if (typeof raw === 'number') return raw;
+    const unwrapped =
+      (raw?.status && typeof raw.status === 'object' && !Array.isArray(raw.status))
+        ? raw.status
+        : (raw?.data && typeof raw.data === 'object' && !Array.isArray(raw.data))
+        ? raw.data
+        : raw;
+
+    if (typeof unwrapped?.total === 'number') return unwrapped.total;
+    if (typeof unwrapped?.totalProperties === 'number') return unwrapped.totalProperties;
+
+    // Avoid double counting if status + roles are in the same object
+    if (unwrapped && (unwrapped.active !== undefined || unwrapped.inactive !== undefined)) {
+      return (
+        (Number(unwrapped.active) || 0) +
+        (Number(unwrapped.inactive) || 0) +
+        (Number(unwrapped.pending) || 0) +
+        (Number(unwrapped.suspended) || 0)
+      );
+    }
+
+    return list.reduce((sum, item) => sum + (Number(item.count) || 0), 0);
+  };
+
+  const usersStatusList = normalizeStatusList(usersStatus);
+  const propsStatusList = normalizeStatusList(propertiesStatus);
+  const bookingsStatusList = normalizeStatusList(bookingsStatus);
+  const reportsStatusList = normalizeStatusList(reportsStatus);
+
+  const totalUsers = extractTotal(usersStatus, usersStatusList);
+  const totalProps = extractTotal(propertiesStatus, propsStatusList);
+  const totalBookings = extractTotal(bookingsStatus, bookingsStatusList);
+  const totalReports = extractTotal(reportsStatus, reportsStatusList);
+
+  const parsedRevenue =
+    revenueData?.totalRevenue ??
+    revenueData?.revenue ??
+    revenueData?.total ??
+    (typeof revenueData === 'number' ? revenueData : null);
+
+  const parsedPendingRevenue =
+    revenueData?.pendingRevenue ?? null;
+
+  const revenueCurrency = revenueData?.currency || (locale === 'ar' ? 'ج.م' : 'EGP');
+
+  return (
+    <div className="dary-page-container">
+      {/* 1. Welcome Banner */}
+      <div className="dary-welcome-card" style={{ background: 'linear-gradient(135deg, #0B2A4A 0%, #153E6B 100%)', border: '1px solid #B69F77' }}>
+        <div className="dary-welcome-content">
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(182, 159, 119, 0.2)', border: '1px solid #B69F77', padding: '0.2rem 0.6rem', borderRadius: '4px', color: '#B69F77', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+            <span>🛡️</span>
+            <span>{locale === 'ar' ? 'لوحة القيادة المركزية' : 'CENTRAL COMMAND DASHBOARD'}</span>
+          </div>
+          <h1 className="dary-welcome-title">
+            {locale === 'ar' ? `مرحبًا بك، ${firstName}` : `Welcome, ${firstName}`}
+          </h1>
+          <p className="dary-welcome-subtitle">
+            {locale === 'ar'
+              ? 'مراقبة مركزية لعمليات سكن الطلاب، نشاط المستخدمين، العقارات المسجلة، الحجوزات، والبلاغات.'
+              : 'Platform oversight for student housing, user activity, properties, bookings, and customer tickets.'}
+          </p>
+        </div>
+
+        <div className="dary-welcome-actions">
+          {hasAdminModuleAccess(user, 'properties') && (
+            <Link to={`${basePath}/properties`} className="dary-primary-btn" style={{ backgroundColor: '#16A34A' }}>
+              <span>{locale === 'ar' ? 'معاينة السكنات' : 'Review Properties'}</span>
+            </Link>
+          )}
+          {hasAdminModuleAccess(user, 'users') && (
+            <Link to={`${basePath}/users`} className="dary-primary-btn" style={{ backgroundColor: '#2F6BFF' }}>
+              <span>{locale === 'ar' ? 'إدارة المستخدمين' : 'Manage Users'}</span>
+            </Link>
+          )}
+          {hasAdminModuleAccess(user, 'bookings') && (
+            <Link to={`${basePath}/bookings`} className="dary-secondary-btn" style={{ borderColor: '#B69F77', color: '#FFFFFF' }}>
+              <span>{locale === 'ar' ? 'إدارة الحجوزات' : 'Bookings'}</span>
+            </Link>
+          )}
+          {hasAdminModuleAccess(user, 'reports') && (
+            <Link to={`${basePath}/reports`} className="dary-secondary-btn" style={{ borderColor: '#B69F77', color: '#FFFFFF' }}>
+              <span>{locale === 'ar' ? 'معالجة البلاغات' : 'Triage Reports'}</span>
+            </Link>
+          )}
+          {hasAdminModuleAccess(user, 'tickets') && (
+            <Link to={`${basePath}/tickets`} className="dary-secondary-btn" style={{ borderColor: '#B69F77', color: '#FFFFFF' }}>
+              <span>{locale === 'ar' ? 'تذاكر الدعم' : 'Support Tickets'}</span>
+            </Link>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Top Metric KPI Grid */}
+      <div className="dary-metrics-grid">
+        {/* Total Users */}
+        {hasAdminModuleAccess(user, 'users') && (
+          <div className="dary-metric-card">
+            <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#EEF3FF', color: '#2F6BFF' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="dary-metric-number">
+                <AnimatedCounter
+                  value={usersError ? null : totalUsers}
+                  loading={loadingUsers}
+                  fallback="—"
+                />
+              </h3>
+              <p className="dary-metric-label">
+                {locale === 'ar' ? 'إجمالي المستخدمين' : 'Total Users'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Total Properties */}
+        {hasAdminModuleAccess(user, 'properties') && (
+          <div className="dary-metric-card">
+            <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <polyline points="9 22 9 12 15 12 15 22" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="dary-metric-number">
+                <AnimatedCounter
+                  value={propsError ? null : totalProps}
+                  loading={loadingProps}
+                  fallback="—"
+                />
+              </h3>
+              <p className="dary-metric-label">
+                {locale === 'ar' ? 'العقارات المسجلة' : 'Registered Properties'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Total Bookings */}
+        {hasAdminModuleAccess(user, 'bookings') && (
+          <div className="dary-metric-card">
+            <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#FEF9C3', color: '#CA8A04' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="dary-metric-number">
+                <AnimatedCounter
+                  value={bookingsError ? null : totalBookings}
+                  loading={loadingBookings}
+                  fallback="—"
+                />
+              </h3>
+              <p className="dary-metric-label">
+                {locale === 'ar' ? 'إجمالي الحجوزات' : 'Total Bookings'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Total Revenue (Final / CLOSED) */}
+        {hasAdminModuleAccess(user, 'analytics') && (
+          <div className="dary-metric-card">
+            <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23" />
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="dary-metric-number">
+                <AnimatedCounter
+                  value={revenueError ? null : parsedRevenue}
+                  loading={loadingRevenue}
+                  suffix={` ${revenueCurrency}`}
+                  fallback="—"
+                />
+              </h3>
+              <p className="dary-metric-label">
+                {locale === 'ar' ? 'الإيرادات النهائية المحصلة (CLOSED)' : 'Final Revenue (Closed)'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Pending Revenue (PENDING, CONTACTED, CONFIRMED) */}
+        {hasAdminModuleAccess(user, 'analytics') && (
+          <div className="dary-metric-card">
+            <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#FEF3C7', color: '#D97706' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="dary-metric-number">
+                <AnimatedCounter
+                  value={revenueError ? null : parsedPendingRevenue}
+                  loading={loadingRevenue}
+                  suffix={` ${revenueCurrency}`}
+                  fallback="—"
+                />
+              </h3>
+              <p className="dary-metric-label">
+                {locale === 'ar' ? 'مبالغ الحجوزات المعلقة' : 'Pending Revenue'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Reports / Triage */}
+        {hasAdminModuleAccess(user, 'reports') && (
+          <div className="dary-metric-card">
+            <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#FEE2E2', color: '#DC2626' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                <line x1="12" y1="9" x2="12" y2="13" />
+                <line x1="12" y1="17" x2="12.01" y2="17" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="dary-metric-number">
+                <AnimatedCounter
+                  value={reportsStatusError ? null : totalReports}
+                  loading={loadingReportsStatus}
+                  fallback="—"
+                />
+              </h3>
+              <p className="dary-metric-label">
+                {locale === 'ar' ? 'البلاغات والشكاوى' : 'Active Reports'}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* 3. Operational Breakdowns: Users, Properties, Bookings */}
+      <div className="dary-sections-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+        {/* Properties Breakdown */}
+        {hasAdminModuleAccess(user, 'properties') && (
+          <div className="dary-card">
+            <div className="dary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="dary-card-title">{locale === 'ar' ? 'حالة العقارات المسجلة' : 'Properties by Status'}</h2>
+              <Link to={`${basePath}/properties`} style={{ color: '#2F6BFF', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
+                {locale === 'ar' ? 'عرض الكل ←' : 'View All →'}
+              </Link>
+            </div>
+
+            {loadingProps ? (
+              <p style={{ color: '#64748B', padding: '1.5rem 0' }}>{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+            ) : propsError ? (
+              <div className="dary-error-alert">
+                <span>{propsError}</span>
+                <button type="button" onClick={fetchPropsStatus} className="dary-retry-btn">
+                  {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+                </button>
+              </div>
+            ) : propsStatusList.length === 0 ? (
+              <p style={{ color: '#64748B', padding: '1rem 0', textAlign: 'center' }}>
+                {locale === 'ar' ? 'لا توجد بيانات متاحة حالياً.' : 'No property status records found.'}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                {propsStatusList.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.75rem 1rem',
+                      backgroundColor: '#F8FAFC',
+                      borderRadius: '8px',
+                      border: '1px solid #E2E8F0',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, color: '#0B2A4A' }}>{item.status}</span>
+                    <span
+                      style={{
+                        padding: '0.25rem 0.65rem',
+                        borderRadius: '12px',
+                        fontSize: '0.82rem',
+                        fontWeight: 700,
+                        backgroundColor:
+                          item.status === 'APPROVED' ? '#DCFCE7' : item.status === 'PENDING' ? '#FEF9C3' : '#F1F5F9',
+                        color:
+                          item.status === 'APPROVED' ? '#15803D' : item.status === 'PENDING' ? '#A16207' : '#475569',
+                      }}
+                    >
+                      {item.count}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Bookings Breakdown */}
+        {hasAdminModuleAccess(user, 'bookings') && (
+          <div className="dary-card">
+            <div className="dary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="dary-card-title">{locale === 'ar' ? 'حالة الحجوزات' : 'Bookings by Status'}</h2>
+              <Link to={`${basePath}/bookings`} style={{ color: '#2F6BFF', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
+                {locale === 'ar' ? 'عرض الكل ←' : 'View All →'}
+              </Link>
+            </div>
+
+            {loadingBookings ? (
+              <p style={{ color: '#64748B', padding: '1.5rem 0' }}>{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+            ) : bookingsError ? (
+              <div className="dary-error-alert">
+                <span>{bookingsError}</span>
+                <button type="button" onClick={fetchBookingsStatus} className="dary-retry-btn">
+                  {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+                </button>
+              </div>
+            ) : bookingsStatusList.length === 0 ? (
+              <p style={{ color: '#64748B', padding: '1rem 0', textAlign: 'center' }}>
+                {locale === 'ar' ? 'لا توجد بيانات متاحة حالياً.' : 'No booking status records found.'}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '1rem' }}>
+                {bookingsStatusList.map((item, idx) => {
+                  const st = (item.status || '').toUpperCase();
+                  const label =
+                    st === 'CLOSED'
+                      ? (locale === 'ar' ? '🏁 تم الانتهاء والتعاقد (CLOSED)' : '🏁 Closed (Completed)')
+                      : st === 'CONFIRMED'
+                      ? (locale === 'ar' ? '✓ مؤكد - مبلغ معلق (CONFIRMED)' : '✓ Confirmed (Pending Revenue)')
+                      : st === 'CONTACTED'
+                      ? (locale === 'ar' ? '📞 تم التواصل (CONTACTED)' : '📞 Contacted')
+                      : st === 'PENDING'
+                      ? (locale === 'ar' ? '⏳ قيد الانتظار (PENDING)' : '⏳ Pending')
+                      : st === 'CANCELLED'
+                      ? (locale === 'ar' ? '✕ ملغي (CANCELLED)' : '✕ Cancelled')
+                      : item.status;
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0.75rem 1rem',
+                        backgroundColor: '#F8FAFC',
+                        borderRadius: '8px',
+                        border: '1px solid #E2E8F0',
+                      }}
+                    >
+                      <span style={{ fontWeight: 600, color: '#0B2A4A', fontSize: '0.85rem' }}>{label}</span>
+                      <span
+                        style={{
+                          padding: '0.25rem 0.65rem',
+                          borderRadius: '12px',
+                          fontSize: '0.82rem',
+                          fontWeight: 700,
+                          backgroundColor:
+                            st === 'CLOSED'
+                              ? '#DCFCE7'
+                              : st === 'CONFIRMED'
+                              ? '#E0E7FF'
+                              : st === 'CONTACTED'
+                              ? '#E0F2FE'
+                              : st === 'PENDING'
+                              ? '#FEF9C3'
+                              : '#FEE2E2',
+                          color:
+                            st === 'CLOSED'
+                              ? '#15803D'
+                              : st === 'CONFIRMED'
+                              ? '#3730A3'
+                              : st === 'CONTACTED'
+                              ? '#0369A1'
+                              : st === 'PENDING'
+                              ? '#A16207'
+                              : '#B91C1C',
+                        }}
+                      >
+                        {item.count}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 7-Day Analytics Overview Widget */}
+        {hasAdminModuleAccess(user, 'analytics') && (
+          <div className="dary-card">
+            <div className="dary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2 className="dary-card-title">{locale === 'ar' ? 'نشاط المنصة (7 أيام)' : '7-Day Platform Activity'}</h2>
+              <Link to={`${basePath}/analytics`} style={{ color: '#2F6BFF', fontSize: '0.85rem', fontWeight: 600, textDecoration: 'none' }}>
+                {locale === 'ar' ? 'التحليلات التفصيلية ←' : 'Full Analytics →'}
+              </Link>
+            </div>
+
+            {loadingAnalytics ? (
+              <p style={{ color: '#64748B', padding: '1.5rem 0' }}>{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+            ) : analyticsError ? (
+              <div className="dary-error-alert">
+                <span>{analyticsError}</span>
+                <button type="button" onClick={fetchAnalytics} className="dary-retry-btn">
+                  {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }}>
+                <div style={{ padding: '0.85rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#64748B' }}>{locale === 'ar' ? 'معدل الإشغال الإجمالي' : 'Occupancy Rate'}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0B2A4A', marginTop: '0.25rem' }}>
+                    {analyticsData?.occupancyRate !== undefined ? (
+                      <AnimatedCounter value={analyticsData.occupancyRate} suffix="%" />
+                    ) : (
+                      '—'
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ padding: '0.85rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#64748B' }}>{locale === 'ar' ? 'النشاط اليومي (Daily Active Users)' : 'Daily Active Users'}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0B2A4A', marginTop: '0.25rem' }}>
+                    {analyticsData?.dailyActiveUsers !== undefined ? (
+                      <AnimatedCounter value={analyticsData.dailyActiveUsers} />
+                    ) : (
+                      '—'
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ padding: '0.85rem', background: '#F8FAFC', borderRadius: '8px', border: '1px solid #E2E8F0' }}>
+                  <div style={{ fontSize: '0.82rem', color: '#64748B' }}>{locale === 'ar' ? 'حجم الحجوزات المسجلة' : 'Booking Volume'}</div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0B2A4A', marginTop: '0.25rem' }}>
+                    {analyticsData?.bookingVolume !== undefined ? (
+                      <AnimatedCounter value={analyticsData.bookingVolume} />
+                    ) : (
+                      '—'
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* 4. Recent Reports Quick Triage */}
+      {hasAdminModuleAccess(user, 'reports') && (
+        <div className="dary-card">
+        <div className="dary-card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h2 className="dary-card-title">{locale === 'ar' ? 'أحدث البلاغات والشكاوى الواردة' : 'Recent Reports & Inquiries'}</h2>
+            <p style={{ color: '#64748B', fontSize: '0.85rem', margin: '0.25rem 0 0' }}>
+              {locale === 'ar' ? 'متابعة شكاوى الطلاب والملاك واتخاذ الإجراءات اللازمة' : 'Track tenant and owner reports for swift resolution'}
+            </p>
+          </div>
+          <Link to={`${basePath}/reports`} className="dary-primary-btn" style={{ padding: '0.45rem 0.95rem', fontSize: '0.85rem' }}>
+            {locale === 'ar' ? 'كل البلاغات' : 'All Reports'}
+          </Link>
+        </div>
+
+        {loadingReports ? (
+          <p style={{ color: '#64748B', padding: '1.5rem 0' }}>{locale === 'ar' ? 'جاري التحميل...' : 'Loading...'}</p>
+        ) : reportsError ? (
+          <div className="dary-error-alert">
+            <span>{reportsError}</span>
+            <button type="button" onClick={fetchRecentReports} className="dary-retry-btn">
+              {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            </button>
+          </div>
+        ) : recentReports.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#64748B' }}>
+            <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>🛡️</span>
+            <p>{locale === 'ar' ? 'لا توجد بلاغات معلقة حالياً.' : 'No active reports at this time.'}</p>
+          </div>
+        ) : (
+          <div style={{ overflowX: 'auto', marginTop: '1rem' }}>
+            <table className="dary-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid #E2E8F0', textAlign: locale === 'ar' ? 'right' : 'left' }}>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>#</th>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>{locale === 'ar' ? 'العنوان / السبب' : 'Title / Reason'}</th>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>{locale === 'ar' ? 'الأولوية' : 'Priority'}</th>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>{locale === 'ar' ? 'الحالة' : 'Status'}</th>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>{locale === 'ar' ? 'مقدم البلاغ' : 'Reporter'}</th>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>{locale === 'ar' ? 'التاريخ' : 'Date'}</th>
+                  <th style={{ padding: '0.75rem', color: '#0B2A4A' }}>{locale === 'ar' ? 'الإجراء' : 'Action'}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentReports.map((report, idx) => {
+                  const title =
+                    report.title ||
+                    (report.reportedProperty?.title
+                      ? `${locale === 'ar' ? 'عقار: ' : 'Property: '}${report.reportedProperty.title}`
+                      : report.description
+                      ? report.description.substring(0, 45) + (report.description.length > 45 ? '...' : '')
+                      : `${locale === 'ar' ? 'بلاغ ' : 'Report '}${report.reportedType || ''}`);
+
+                  const reporter =
+                    report.reporter?.firstName
+                      ? `${report.reporter.firstName} ${report.reporter.lastName || ''}`.trim()
+                      : report.reporter?.email || report.reportedBy?.name || report.reportedBy?.email || '—';
+
+                  const rawPriority = (report.priority || 'medium').toUpperCase();
+
+                  return (
+                    <tr key={report.id || idx} style={{ borderBottom: '1px solid #F1F5F9' }}>
+                      <td style={{ padding: '0.75rem', color: '#64748B', fontSize: '0.85rem' }}>
+                        {report.id ? report.id.substring(0, 8) : `#${idx + 1}`}
+                      </td>
+                      <td style={{ padding: '0.75rem', fontWeight: 600, color: '#0B2A4A' }}>
+                        {title}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor:
+                              rawPriority === 'URGENT' || rawPriority === 'HIGH'
+                                ? '#FEE2E2'
+                                : rawPriority === 'MEDIUM'
+                                ? '#FEF9C3'
+                                : '#F1F5F9',
+                            color:
+                              rawPriority === 'URGENT' || rawPriority === 'HIGH'
+                                ? '#DC2626'
+                                : rawPriority === 'MEDIUM'
+                                ? '#CA8A04'
+                                : '#475569',
+                          }}
+                        >
+                          {rawPriority}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <span
+                          style={{
+                            padding: '0.2rem 0.55rem',
+                            borderRadius: '6px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            backgroundColor: report.status === 'RESOLVED' ? '#DCFCE7' : '#FEF9C3',
+                            color: report.status === 'RESOLVED' ? '#15803D' : '#A16207',
+                          }}
+                        >
+                          {report.status || 'PENDING'}
+                        </span>
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#475569', fontSize: '0.85rem' }}>
+                        {reporter}
+                      </td>
+                      <td style={{ padding: '0.75rem', color: '#64748B', fontSize: '0.82rem' }}>
+                        {report.createdAt ? new Date(report.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US') : '—'}
+                      </td>
+                      <td style={{ padding: '0.75rem' }}>
+                        <Link
+                          to={`${basePath}/reports`}
+                          style={{
+                            padding: '0.35rem 0.75rem',
+                            borderRadius: '6px',
+                            backgroundColor: '#0B2A4A',
+                            color: '#FFFFFF',
+                            textDecoration: 'none',
+                            fontSize: '0.8rem',
+                            fontWeight: 600,
+                          }}
+                        >
+                          {locale === 'ar' ? 'معالجة' : 'Triage'}
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+      )}
+    </div>
+  );
+}

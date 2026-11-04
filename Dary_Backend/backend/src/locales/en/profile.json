@@ -1,0 +1,14 @@
+{
+  "profile": {
+    "notFound": "Profile not found",
+    "invalidGender": "Invalid gender",
+    "locationBothRequired": "Latitude and longitude must be provided together",
+    "avatarRequired": "Avatar image is required",
+    "avatarNotFound": "Avatar not found",
+    "avatarUpdated": "Avatar updated successfully",
+    "avatarDeleted": "Avatar deleted successfully",
+    "updateSuccess": "Profile updated successfully",
+    "retrieved": "Profile retrieved successfully",
+    "publicRetrieved": "Public profile retrieved successfully"
+  }
+}

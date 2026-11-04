@@ -1,0 +1,20 @@
+{
+  "contract": {
+    "notFound": "Contract not found",
+    "bookingNotContacted": "A contract cannot be created before the tenant is contacted and the booking is confirmed",
+    "alreadyExists": "A contract already exists for this booking",
+    "invalidStatusForAction": "This action cannot be performed in the contract's current status",
+    "pdfRequired": "A PDF contract file is required",
+    "cannotCancel": "This contract cannot be cancelled in its current status",
+    "created": "Contract created successfully",
+    "sentToTenant": "Contract sent to tenant successfully",
+    "tenantSigned": "Tenant-signed copy uploaded successfully",
+    "forwardedToOwner": "Contract forwarded to owner successfully",
+    "ownerSigned": "Owner-signed copy uploaded successfully",
+    "activated": "Contract activated successfully",
+    "cancelled": "Contract cancelled successfully",
+    "alreadySigned": "This contract has already been signed",
+    "fetched": "Contract retrieved successfully",
+    "sent": "Contract sent to tenant and owner successfully"
+  }
+}

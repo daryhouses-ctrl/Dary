@@ -1,0 +1,11 @@
+{
+  "savedSearch": {
+    "notFound": "Saved search not found",
+    "invalidPriceRange": "minPrice cannot be greater than maxPrice",
+    "created": "Saved search created successfully",
+    "listRetrieved": "Saved searches retrieved successfully",
+    "retrieved": "Saved search retrieved successfully",
+    "updated": "Saved search updated successfully",
+    "deleted": "Saved search deleted successfully"
+  }
+}

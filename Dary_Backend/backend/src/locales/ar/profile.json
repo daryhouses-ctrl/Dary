@@ -1,0 +1,14 @@
+{
+  "profile": {
+    "notFound": "الملف الشخصي غير موجود",
+    "invalidGender": "نوع الجنس غير صحيح",
+    "locationBothRequired": "يجب إدخال خط العرض وخط الطول معًا",
+    "avatarRequired": "صورة الملف الشخصي مطلوبة",
+    "avatarNotFound": "لا توجد صورة للملف الشخصي",
+    "avatarUpdated": "تم تحديث صورة الملف الشخصي بنجاح",
+    "avatarDeleted": "تم حذف صورة الملف الشخصي بنجاح",
+    "updateSuccess": "تم تحديث الملف الشخصي بنجاح",
+    "retrieved": "تم جلب الملف الشخصي بنجاح",
+    "publicRetrieved": "تم جلب الملف الشخصي العام بنجاح"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "notification": {
+    "fetched": "Notifications retrieved successfully",
+    "notFound": "Notification not found",
+    "markedAsRead": "Notification marked as read",
+    "allMarkedAsRead": "All notifications marked as read",
+    "deleted": "Notification deleted successfully",
+    "allReadDeleted": "All read notifications deleted successfully"
+  }
+}

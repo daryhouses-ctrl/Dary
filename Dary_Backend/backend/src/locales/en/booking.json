@@ -1,0 +1,22 @@
+{
+  "booking": {
+    "propertyAndRoomRequired": "Property and room are required",
+    "datesRequired": "Start date and end date are required",
+    "invalidDates": "Invalid start or end date",
+    "invalidDateRange": "End date must be after start date",
+    "invalidBedsRequested": "Invalid number of beds requested",
+    "propertyNotAvailable": "This property is not currently available for booking",
+    "roomNotAvailable": "This room is not currently available",
+    "notEnoughBeds": "Not enough available beds for your request",
+    "alreadyRequested": "You already have an active booking request for this room",
+    "notFound": "Booking not found",
+    "alreadyAssigned": "An admin is already assigned to this booking",
+    "invalidStatusTransition": "This booking status change is not allowed",
+    "contractNotSigned": "Cannot close the booking before the contract is signed by both parties",
+    "cannotCancel": "This booking cannot be cancelled in its current status",
+    "created": "Booking request submitted successfully",
+    "assigned": "You have been assigned to this booking successfully",
+    "statusUpdated": "Booking status updated successfully",
+    "cancelled": "Booking cancelled successfully"
+  }
+}

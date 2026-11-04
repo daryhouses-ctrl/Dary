@@ -1,0 +1,20 @@
+{
+  "report": {
+    "invalidType": "Invalid report type",
+    "invalidPriority": "Invalid priority level",
+    "targetRequired": "You must specify a property or user to report",
+    "onlyOneTargetAllowed": "You cannot report a property and a user in the same report",
+    "propertyIdRequiredForType": "Property ID is required when reporting a property",
+    "userIdRequiredForType": "User ID is required for this report type",
+    "cannotReportSelf": "You cannot report yourself",
+    "notFound": "Report not found",
+    "alreadyResolved": "This report has already been resolved",
+    "resolutionNotesRequired": "Resolution notes are required",
+    "created": "Report submitted successfully",
+    "priorityUpdated": "Priority updated successfully",
+    "resolved": "Report resolved successfully",
+    "myListRetrieved": "Your reports retrieved successfully",
+    "retrieved": "Report retrieved successfully",
+    "listRetrieved": "Reports retrieved successfully"
+  }
+}

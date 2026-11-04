@@ -1,0 +1,26 @@
+{
+  "dashboard": {
+    "reportsStatusFetched": "تم استرجاع حالة البلاغات بنجاح",
+    "reportsFetched": "تم استرجاع البلاغات بنجاح",
+    "bookingsStatusFetched": "تم استرجاع حالة الحجوزات بنجاح",
+    "bookingsFetched": "تم استرجاع الحجوزات بنجاح",
+    "propertiesStatusFetched": "تم استرجاع حالة العقارات بنجاح",
+    "propertiesFetched": "تم استرجاع العقارات بنجاح",
+    "usersStatusFetched": "تم استرجاع حالة المستخدمين بنجاح",
+    "usersFetched": "تم استرجاع المستخدمين بنجاح",
+    "analyticsFetched": "تم استرجاع التحليلات بنجاح",
+    "ownerPropertiesStatusFetched": "تم استرجاع حالة عقارات المالك بنجاح",
+    "ownerBookingsStatusFetched": "تم استرجاع حالة حجوزات المالك بنجاح",
+    "ownerBookingsRevenueFetched": "تم استرجاع إيرادات حجوزات المالك بنجاح",
+    "bookingsRevenueFetched": "تم استرجاع إيرادات الحجوزات بنجاح"
+  },
+  "rentals": {
+    "fetched": "تم استرجاع إيجاراتك بنجاح"
+  },
+  "recentlyViewed": {
+    "added": "تمت إضافة العقار إلى الأحدث مشاهدة",
+    "fetched": "تم استرجاع العقارات الأحدث مشاهدة بنجاح",
+    "removed": "تمت إزالة العقار من الأحدث مشاهدة",
+    "cleared": "تم مسح قائمة الأحدث مشاهدة بنجاح"
+  }
+}

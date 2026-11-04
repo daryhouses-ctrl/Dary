@@ -1,0 +1,14 @@
+{
+  "role": {
+    "alreadyExists": "This role already exists",
+    "notFound": "Role not found",
+    "alreadyAssigned": "This role is already assigned to this user",
+    "assignSuccess": "Role {{role}} assigned to user successfully",
+    "removeSuccess": "Role {{role}} removed from user successfully",
+    "created": "Role created successfully",
+    "listRetrieved": "Roles retrieved successfully",
+    "assigned": "Role assigned to user successfully",
+    "removed": "Role removed from user successfully",
+    "userRolesRetrieved": "User roles retrieved successfully"
+  }
+}

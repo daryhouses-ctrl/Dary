@@ -1,0 +1,10 @@
+{
+  "favorite": {
+    "notFound": "Property not found",
+    "alreadyExists": "Property is already in your favorites",
+    "notInFavorites": "Property is not in your favorites",
+    "added": "Property added to favorites successfully",
+    "fetched": "Favorite properties retrieved successfully",
+    "removed": "Property removed from favorites successfully"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "ticket": {
+    "notFound": "تذكرة الدعم غير موجودة",
+    "missingFields": "يجب إدخال التصنيف والموضوع والوصف",
+    "messageRequired": "يجب إدخال رسالة أو إرفاق ملف",
+    "ticketArchived": "لا يمكن الرد على تذكرة مؤرشفة",
+    "attachmentUploadFailed": "فشل رفع المرفقات، حاول مرة أخرى",
+    "newMessageTitle": "رسالة جديدة في تذكرة الدعم",
+    "newAttachmentBody": "تم إرفاق ملف جديد",
+    "invalidStatusTransition": "لا يمكن تغيير حالة التذكرة بهذا الشكل",
+    "created": "تم إنشاء تذكرة الدعم بنجاح",
+    "messageSent": "تم إرسال الرسالة بنجاح",
+    "assigned": "تم تعيينك على هذه التذكرة بنجاح",
+    "statusUpdated": "تم تحديث حالة التذكرة بنجاح",
+    "myListRetrieved": "تم استرجاع تذاكر الدعم الخاصة بك بنجاح",
+    "retrieved": "تم استرجاع تذكرة الدعم بنجاح",
+    "listRetrieved": "تم استرجاع تذاكر الدعم بنجاح"
+  }
+}

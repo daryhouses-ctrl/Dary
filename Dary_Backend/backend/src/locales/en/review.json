@@ -1,0 +1,18 @@
+{
+  "review": {
+    "missingFields": "Booking ID, property rating, and owner rating are required",
+    "invalidRatingRange": "Rating must be between 1 and 5",
+    "bookingNotClosed": "You can only review a booking after it is closed",
+    "alreadyExists": "This booking has already been reviewed",
+    "invalidModerationStatus": "Invalid moderation status",
+    "notFound": "Review not found",
+    "alreadyModerated": "This review has already been moderated",
+    "created": "Review submitted successfully and is pending moderation",
+    "moderated": "Review status updated successfully",
+    "propertyListRetrieved": "Property reviews retrieved successfully",
+    "ownerListRetrieved": "Owner reviews retrieved successfully",
+    "myListRetrieved": "Your reviews retrieved successfully",
+    "pendingRetrieved": "Pending reviews retrieved successfully",
+    "listRetrieved": "Reviews retrieved successfully"
+  }
+}

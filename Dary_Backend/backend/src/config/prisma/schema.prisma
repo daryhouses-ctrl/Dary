@@ -1,0 +1,686 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String           @id @default(uuid())
+  firstName          String           @map("first_name")
+  lastName           String           @map("last_name")
+  email              String?           @unique
+  phone              String?          @unique
+  whatsappPhone      String?          @map("whatsapp_phone")
+  password           String           @map("password")
+  avatar             String?
+  avatarPublicId     String?          @map("avatar_public_id")
+  status             UserStatus       @default(PENDING)
+  isVerified         Boolean          @default(false) @map("is_verified")
+  lastLogin          DateTime?        @map("last_login")
+  createdAt          DateTime         @default(now()) @map("created_at")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+  deletedAt          DateTime?        @map("deleted_at")
+  bidsResponded      Bid[]            @relation("BidResponder")
+  bidsSubmitted      Bid[]            @relation("BidTenant")
+  bookingsAssigned   Booking[]        @relation("BookingAssignedAdmin")
+  bookingsAsTenant   Booking[]        @relation("BookingTenant")
+  contractsReviewed  Contract[]
+  deviceTokens       DeviceToken[]
+  favorites          Favorite[]
+  googleAccount      GoogleAccount?
+  notifications      Notification[]
+  otpCodes           OtpCode[]
+  profile            Profile?
+  properties         Property[]       @relation("PropertyOwner")
+  reviewedProperties Property[]       @relation("PropertyReviewer")
+  recentlyViewed     RecentlyViewed[]
+  refreshTokens      RefreshToken[]
+  reportsSubmitted   Report[]         @relation("ReportReporter")
+  reportsResolved    Report[]         @relation("ReportResolver")
+  reviewsReceived    Review[]         @relation("ReviewOwner")
+  reviewsGiven       Review[]         @relation("ReviewTenant")
+  savedSearches      SavedSearch[]
+  sessions           Session[]
+  ticketsAssigned    SupportTicket[]  @relation("TicketAssignedAdmin")
+  supportTickets     SupportTicket[]  @relation("TicketUser")
+  ticketMessages     TicketMessage[]
+  userRoles          UserRole[]
+  wallet             Wallet?
+
+  @@index([deletedAt])
+  @@index([status])
+  @@map("users")
+}
+
+model Profile {
+  id          String    @id @default(uuid())
+  userId      String    @unique @map("user_id")
+  gender      Gender?
+  birthDate   DateTime? @map("birth_date")
+  nationality String?
+  university  String?
+  faculty     String?
+  country     String?
+  city        String?
+  address     String?
+  latitude    Float?
+  longitude   Float?
+  bio         String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([latitude, longitude])
+  @@map("profiles")
+}
+
+model GoogleAccount {
+  id        String   @id @default(uuid())
+  googleId  String   @unique @map("google_id")
+  email     String   @unique
+  userId    String   @unique @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("google_accounts")
+}
+
+model Role {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  rolePermissions RolePermission[]
+  userRoles       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  name            String           @unique
+  description     String?
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  roleId    String   @map("role_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String     @map("role_id")
+  permissionId String     @map("permission_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  expiresAt DateTime @map("expires_at")
+  isRevoked Boolean  @default(false) @map("is_revoked")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([isRevoked, createdAt])
+  @@map("refresh_tokens")
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  ip        String?
+  device    String?
+  browser   String?
+  os        String?
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OtpCode {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  code       String
+  type       OtpType
+  expiresAt  DateTime  @map("expires_at")
+  verifiedAt DateTime? @map("verified_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("otp_codes")
+}
+
+model DeviceToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String   @unique
+  platform  String   @db.VarChar(10)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("device_tokens")
+}
+
+model Property {
+  id                   String           @id @default(uuid())
+  ownerId              String           @map("owner_id")
+  title                String
+  description          String?
+  governorate          String?
+  city                 String?
+  district             String?
+  address              String?
+  latitude             Float?
+  longitude            Float?
+  nearestUniversity    String?          @map("nearest_university")
+  distanceToUniversity Float?           @map("distance_to_university")
+  propertyType         PropertyType
+  propertyClass        PropertyClass    @default(STANDARD) @map("property_class")
+  targetTenantType     TargetTenantType @default(ANY) @map("target_tenant_type")
+  genderAllowed        GenderAllowed    @map("gender_allowed")
+  rooms                Int?
+  startingPrice        Decimal?         @map("starting_price") @db.Decimal(10, 2)
+  isFurnished          Boolean          @default(false) @map("is_furnished")
+  electricityIncluded  Boolean          @default(false) @map("electricity_included")
+  waterIncluded        Boolean          @default(false) @map("water_included")
+  internetIncluded     Boolean          @default(false) @map("internet_included")
+  amenities            String[]
+  status               PropertyStatus   @default(PENDING)
+  rejectionReason      String?          @map("rejection_reason")
+  isVerified           Boolean          @default(false) @map("is_verified")
+  isAvailable          Boolean          @default(true) @map("is_available")
+  viewsCount           Int              @default(0) @map("views_count")
+  reviewedById         String?          @map("reviewed_by")
+  reviewedAt           DateTime?        @map("reviewed_at")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+  deletedAt            DateTime?        @map("deleted_at")
+  bids                 Bid[]
+  bookings             Booking[]
+  favorites            Favorite[]
+  owner                User             @relation("PropertyOwner", fields: [ownerId], references: [id])
+  reviewedBy           User?            @relation("PropertyReviewer", fields: [reviewedById], references: [id])
+  images               PropertyImage[]
+  rooms_               PropertyRoom[]   @relation("PropertyRooms")
+  recentlyViewed       RecentlyViewed[]
+  reports              Report[]
+  reviews              Review[]
+
+  @@index([ownerId, deletedAt])
+  @@index([status])
+  @@index([city])
+  @@index([startingPrice])
+  @@index([deletedAt])
+  @@map("properties")
+}
+
+model PropertyRoom {
+  id            String     @id @default(uuid())
+  propertyId    String     @map("property_id")
+  roomType      RoomType   @map("room_type")
+  pricePerBed   Decimal    @map("price_per_bed") @db.Decimal(10, 2)
+  totalBeds     Int        @map("total_beds")
+  availableBeds Int        @map("available_beds")
+  status        RoomStatus @default(AVAILABLE)
+  photoUrl      String?    @map("photo_url")
+  photoPublicId String?    @map("photo_public_id")
+  createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @updatedAt @map("updated_at")
+  bids          Bid[]
+  bookings      Booking[]
+  property      Property   @relation("PropertyRooms", fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId])
+  @@map("property_rooms")
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid())
+  propertyId String   @map("property_id")
+  url        String
+  publicId   String?  @map("public_id")
+  category   String?
+  isPrimary  Boolean  @default(false) @map("is_primary")
+  order      Int      @default(0)
+  createdAt  DateTime @default(now()) @map("created_at")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+
+  @@index([propertyId, order])
+  @@index([propertyId, isPrimary])
+  @@map("property_images")
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  propertyId String   @map("property_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId])
+  @@index([propertyId])
+  @@map("favorites")
+}
+
+model RecentlyViewed {
+  id         String   @id @default(uuid())
+  userId     String   @map("user_id")
+  propertyId String   @map("property_id")
+  viewedAt   DateTime @default(now()) @map("viewed_at")
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, propertyId])
+  @@index([userId, viewedAt])
+  @@map("recently_viewed")
+}
+
+model SavedSearch {
+  id                  String            @id @default(uuid())
+  userId              String            @map("user_id")
+  name                String?
+  governorate         String?
+  city                String?
+  district            String?
+  propertyType        PropertyType?
+  propertyClass       PropertyClass?
+  targetTenantType    TargetTenantType?
+  genderAllowed       GenderAllowed?
+  minPrice            Decimal?          @map("min_price") @db.Decimal(10, 2)
+  maxPrice            Decimal?          @map("max_price") @db.Decimal(10, 2)
+  rooms               Int?
+  isFurnished         Boolean?          @map("is_furnished")
+  nearestUniversity   String?           @map("nearest_university")
+  createdAt           DateTime          @default(now()) @map("created_at")
+  updatedAt           DateTime          @updatedAt @map("updated_at")
+  electricityIncluded Boolean?          @map("electricity_included")
+  internetIncluded    Boolean?          @map("internet_included")
+  waterIncluded       Boolean?          @map("water_included")
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("saved_searches")
+}
+
+model Booking {
+  id              String        @id @default(uuid())
+  tenantId        String        @map("tenant_id")
+  propertyId      String        @map("property_id")
+  roomId          String        @map("room_id")
+  bedsRequested   Int           @default(1) @map("beds_requested")
+  assignedAdminId String?       @map("assigned_admin_id")
+  status          BookingStatus @default(PENDING)
+  note            String?
+  contactedAt     DateTime?     @map("contacted_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  endDate         DateTime?     @map("end_date")
+  startDate       DateTime?     @map("start_date")
+  monthsCount     Int           @default(1) @map("months_count")
+  totalPrice      Decimal       @default(0) @map("total_price") @db.Decimal(10, 2)
+  assignedAdmin   User?         @relation("BookingAssignedAdmin", fields: [assignedAdminId], references: [id])
+  property        Property      @relation(fields: [propertyId], references: [id])
+  room            PropertyRoom  @relation(fields: [roomId], references: [id])
+  tenant          User          @relation("BookingTenant", fields: [tenantId], references: [id])
+  contract        Contract?
+  review          Review?
+
+  @@index([status])
+  @@index([tenantId])
+  @@index([propertyId])
+  @@index([roomId])
+  @@index([startDate, endDate])
+  @@index([status, startDate, endDate])
+  @@index([tenantId, createdAt])
+  @@map("bookings")
+}
+
+model Bid {
+  id             String        @id @default(uuid())
+  propertyId     String        @map("property_id")
+  propertyRoomId String?       @map("property_room_id")
+  tenantId       String        @map("tenant_id")
+  offeredPrice   Decimal       @map("offered_price") @db.Decimal(10, 2)
+  message        String?
+  status         BidStatus     @default(PENDING)
+  respondedById  String?       @map("responded_by")
+  respondedAt    DateTime?     @map("responded_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  property       Property      @relation(fields: [propertyId], references: [id])
+  propertyRoom   PropertyRoom? @relation(fields: [propertyRoomId], references: [id])
+  respondedBy    User?         @relation("BidResponder", fields: [respondedById], references: [id])
+  tenant         User          @relation("BidTenant", fields: [tenantId], references: [id])
+
+  @@index([propertyId])
+  @@index([tenantId])
+  @@index([status])
+  @@map("bids")
+}
+
+model Contract {
+  id                      String         @id @default(uuid())
+  bookingId               String         @unique @map("booking_id")
+  contractNumber          String?        @unique @map("contract_number")
+  draftPdfUrl             String?        @map("draft_pdf_url")
+  draftPdfPublicId        String?        @map("draft_pdf_public_id")
+  tenantSignedPdfUrl      String?        @map("tenant_signed_pdf_url")
+  tenantSignedPdfPublicId String?        @map("tenant_signed_pdf_public_id")
+  tenantSignedAt          DateTime?
+  ownerSignedPdfUrl       String?        @map("owner_signed_pdf_url")
+  ownerSignedPdfPublicId  String?        @map("owner_signed_pdf_public_id")
+  ownerSignedAt           DateTime?
+  status                  ContractStatus @default(DRAFT)
+  reviewedByAdminId       String?        @map("reviewed_by_admin_id")
+  createdAt               DateTime       @default(now()) @map("created_at")
+  updatedAt               DateTime       @updatedAt @map("updated_at")
+  booking                 Booking        @relation(fields: [bookingId], references: [id])
+  reviewedByAdmin         User?          @relation(fields: [reviewedByAdminId], references: [id])
+
+  @@map("contracts")
+}
+
+model Review {
+  id             String       @id @default(uuid())
+  bookingId      String       @unique @map("booking_id")
+  tenantId       String       @map("tenant_id")
+  propertyId     String       @map("property_id")
+  ownerId        String       @map("owner_id")
+  propertyRating Int          @map("property_rating")
+  ownerRating    Int          @map("owner_rating")
+  comment        String?
+  status         ReviewStatus @default(PENDING)
+  moderatedById  String?      @map("moderated_by")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  booking        Booking      @relation(fields: [bookingId], references: [id])
+  owner          User         @relation("ReviewOwner", fields: [ownerId], references: [id])
+  property       Property     @relation(fields: [propertyId], references: [id])
+  tenant         User         @relation("ReviewTenant", fields: [tenantId], references: [id])
+
+  @@index([propertyId])
+  @@map("reviews")
+}
+
+model Report {
+  id                 String         @id @default(uuid())
+  reporterId         String         @map("reporter_id")
+  reportedType       ReportType     @map("reported_type")
+  reportedPropertyId String?        @map("reported_property_id")
+  reportedUserId     String?        @map("reported_user_id")
+  description        String?
+  priority           ReportPriority @default(medium)
+  status             ReportStatus   @default(PENDING)
+  resolvedById       String?        @map("resolved_by")
+  resolutionNotes    String?        @map("resolution_notes")
+  createdAt          DateTime       @default(now()) @map("created_at")
+  resolvedAt         DateTime?      @map("resolved_at")
+  reportedProperty   Property?      @relation(fields: [reportedPropertyId], references: [id])
+  reporter           User           @relation("ReportReporter", fields: [reporterId], references: [id])
+  resolvedBy         User?          @relation("ReportResolver", fields: [resolvedById], references: [id])
+
+  @@index([status, priority])
+  @@map("reports")
+}
+
+model Notification {
+  id                String              @id @default(uuid())
+  userId            String              @map("user_id")
+  event             NotificationEvent
+  channel           NotificationChannel
+  title             String
+  body              String
+  payload           Json?
+  relatedEntityType String?             @map("related_entity_type")
+  relatedEntityId   String?             @map("related_entity_id")
+  isDelivered       Boolean             @default(false) @map("is_delivered")
+  deliveredRealtime Boolean             @default(false) @map("delivered_realtime")
+  retryCount        Int                 @default(0) @map("retry_count")
+  isRead            Boolean             @default(false) @map("is_read")
+  readAt            DateTime?           @map("read_at")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+model SupportTicket {
+  id              String          @id @default(uuid())
+  userId          String          @map("user_id")
+  assignedAdminId String?         @map("assigned_admin_id")
+  category        String
+  subject         String
+  description     String
+  status          TicketStatus    @default(OPEN)
+  createdAt       DateTime        @default(now()) @map("created_at")
+  resolvedAt      DateTime?       @map("resolved_at")
+  assignedAdmin   User?           @relation("TicketAssignedAdmin", fields: [assignedAdminId], references: [id])
+  user            User            @relation("TicketUser", fields: [userId], references: [id])
+  messages        TicketMessage[]
+
+  @@map("support_tickets")
+}
+
+model TicketMessage {
+  id          String        @id @default(uuid())
+  ticketId    String        @map("ticket_id")
+  senderId    String        @map("sender_id")
+  message     String
+  createdAt   DateTime      @default(now()) @map("created_at")
+  attachments Attachment[]
+  sender      User          @relation(fields: [senderId], references: [id])
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+model Attachment {
+  id              String        @id @default(uuid())
+  ticketMessageId String        @map("ticket_message_id")
+  url             String
+  publicId        String?       @map("public_id")
+  type            String
+  createdAt       DateTime      @default(now()) @map("created_at")
+  ticketMessage   TicketMessage @relation(fields: [ticketMessageId], references: [id], onDelete: Cascade)
+
+  @@map("attachments")
+}
+
+model Wallet {
+  id           String              @id @default(uuid())
+  userId       String              @unique @map("user_id")
+  balance      Decimal             @default(0) @db.Decimal(10, 2)
+  createdAt    DateTime            @default(now()) @map("created_at")
+  updatedAt    DateTime            @updatedAt @map("updated_at")
+  transactions WalletTransaction[]
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id          String          @id @default(uuid())
+  walletId    String          @map("wallet_id")
+  type        TransactionType
+  amount      Decimal         @db.Decimal(10, 2)
+  description String?
+  createdAt   DateTime        @default(now()) @map("created_at")
+  wallet      Wallet          @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@map("wallet_transactions")
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+  SUSPENDED
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum OtpType {
+  EMAIL_VERIFICATION
+  PHONE_VERIFICATION
+  RESET_PASSWORD
+}
+
+enum PropertyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  ARCHIVED
+}
+
+enum PropertyType {
+  shared_apartment
+  private_room
+  shared_room
+  studio
+  entire_apartment
+}
+
+enum PropertyClass {
+  STANDARD
+  LUXURY
+}
+
+enum GenderAllowed {
+  male_only
+  female_only
+}
+
+enum TargetTenantType {
+  STUDENT
+  GENERAL
+  ANY
+}
+
+enum RoomType {
+  SINGLE
+  DOUBLE
+  TRIPLE
+  QUAD
+}
+
+enum RoomStatus {
+  AVAILABLE
+  FULL
+  HIDDEN
+}
+
+enum BookingStatus {
+  PENDING
+  CONTACTED
+  CONFIRMED
+  CLOSED
+  CANCELLED
+}
+
+enum BidStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum ContractStatus {
+  DRAFT
+  SENT
+  SIGNED
+  ACTIVE
+  CANCELLED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum ReportType {
+  property
+  user
+  spam
+  fraud
+}
+
+enum ReportPriority {
+  low
+  medium
+  high
+}
+
+enum ReportStatus {
+  PENDING
+  RESOLVED
+}
+
+enum TicketStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  ARCHIVED
+}
+
+enum NotificationChannel {
+  in_app
+  email
+  sms
+  push
+}
+
+enum NotificationEvent {
+  property
+  booking
+  report
+  contract
+  review
+  ticket
+  system
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}

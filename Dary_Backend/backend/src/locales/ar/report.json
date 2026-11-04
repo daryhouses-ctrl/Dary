@@ -1,0 +1,20 @@
+{
+  "report": {
+    "invalidType": "نوع البلاغ غير صحيح",
+    "invalidPriority": "درجة الأولوية غير صحيحة",
+    "targetRequired": "يجب تحديد عقار أو مستخدم للبلاغ عنه",
+    "onlyOneTargetAllowed": "لا يمكن الإبلاغ عن عقار ومستخدم في نفس البلاغ",
+    "propertyIdRequiredForType": "يجب تحديد العقار عند الإبلاغ عن نوع عقار",
+    "userIdRequiredForType": "يجب تحديد المستخدم لهذا النوع من البلاغ",
+    "cannotReportSelf": "لا يمكنك الإبلاغ عن نفسك",
+    "notFound": "البلاغ غير موجود",
+    "alreadyResolved": "تم حل هذا البلاغ من قبل",
+    "resolutionNotesRequired": "يجب إدخال ملاحظات الحل",
+    "created": "تم إرسال البلاغ بنجاح",
+    "priorityUpdated": "تم تحديث درجة الأولوية بنجاح",
+    "resolved": "تم حل البلاغ بنجاح",
+    "myListRetrieved": "تم استرجاع بلاغاتك بنجاح",
+    "retrieved": "تم استرجاع البلاغ بنجاح",
+    "listRetrieved": "تم استرجاع البلاغات بنجاح"
+  }
+}

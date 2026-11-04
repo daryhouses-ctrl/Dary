@@ -1,0 +1,1655 @@
+import { useState, useMemo, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useLocale } from '../../utils/LocaleContext';
+import { OwnerService, type OwnerPropertyItem } from '../../services/ownerService';
+import { propertyService, isPropertyDeletedOrArchived } from '../../services/propertyService';
+import AnimatedCounter from '../../components/common/AnimatedCounter';
+import { useOwnerMyProperties } from '../../hooks/useDashboardQueries';
+import { useQueryClient } from '../../lib/queryClient';
+import Pagination from '../../components/common/Pagination';
+import ImageManagerModal from '../../components/ownerDashboard/ImageManagerModal';
+
+export default function OwnerPropertiesPage() {
+  const { locale } = useLocale();
+  const queryClient = useQueryClient();
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+
+  // Pagination state
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(9);
+
+  // Action states
+  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
+  const [pageMessage, setPageMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [locallyDeletedIds, setLocallyDeletedIds] = useState<Set<string>>(() => new Set());
+  const [propertyBookingsMap, setPropertyBookingsMap] = useState<Record<string, any[]>>({});
+
+  // Delete Property Modal states
+  const [deleteModalProperty, setDeleteModalProperty] = useState<OwnerPropertyItem | null>(null);
+  const [deleteModalBlockedReason, setDeleteModalBlockedReason] = useState<string | null>(null);
+  const [deleteModalError, setDeleteModalError] = useState<string | null>(null);
+
+  // Manage Rooms state
+  const [manageRoomsProperty, setManageRoomsProperty] = useState<OwnerPropertyItem | null>(null);
+  const [roomsList, setRoomsList] = useState<any[]>([]);
+
+  // Image Manager state
+  const [imageManagerProperty, setImageManagerProperty] = useState<OwnerPropertyItem | null>(null);
+  const [newRoomType, setNewRoomType] = useState<'SINGLE' | 'DOUBLE' | 'TRIPLE' | 'QUAD'>('SINGLE');
+  const [newPricePerBed, setNewPricePerBed] = useState<number>(2000);
+  const [newTotalBeds, setNewTotalBeds] = useState<number>(1);
+  const [newAvailableBeds, setNewAvailableBeds] = useState<number>(1);
+  const [newRoomPhoto, setNewRoomPhoto] = useState<File | null>(null);
+  const [isAddingRoom, setIsAddingRoom] = useState(false);
+  const [roomModalMessage, setRoomModalMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+  const [editPrice, setEditPrice] = useState<number>(0);
+  const [editTotalBeds, setEditTotalBeds] = useState<number>(0);
+  const [editAvailableBeds, setEditAvailableBeds] = useState<number>(0);
+  const [isSavingRoom, setIsSavingRoom] = useState(false);
+
+  // Semi-static cache: 5 minutes staleTime
+  const {
+    data: rawProperties,
+    isLoading: loading,
+    error: queryError,
+    refetch: fetchProperties,
+  } = useOwnerMyProperties();
+
+  // Always refetch properties on mount so newly added properties appear immediately
+  useEffect(() => {
+    fetchProperties();
+  }, [fetchProperties]);
+
+  const properties: OwnerPropertyItem[] = useMemo(() => {
+    const list = Array.isArray(rawProperties) ? rawProperties : [];
+    return list.filter((p) => p && !locallyDeletedIds.has(String(p.id)) && !isPropertyDeletedOrArchived(p));
+  }, [rawProperties, locallyDeletedIds]);
+
+  // Fetch bookings per property in background to accurately detect active bookings on each property
+  useEffect(() => {
+    let cancelled = false;
+    if (properties.length === 0) return;
+
+    const idsToFetch = properties
+      .map((p) => String(p.id))
+      .filter((id) => Boolean(id) && propertyBookingsMap[id] === undefined);
+
+    if (idsToFetch.length === 0) return;
+
+    Promise.all(
+      idsToFetch.map(async (id) => {
+        const bks = await OwnerService.getPropertyBookings(id).catch(() => []);
+        return [id, Array.isArray(bks) ? bks : []] as const;
+      })
+    ).then((entries) => {
+      if (cancelled) return;
+      setPropertyBookingsMap((prev) => {
+        const next = { ...prev };
+        for (const [id, bks] of entries) {
+          next[id] = bks;
+        }
+        return next;
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [properties, propertyBookingsMap]);
+
+  const error = queryError
+    ? (queryError as any)?.message ||
+      (locale === 'ar'
+        ? 'تعذر تحميل عقاراتك من الخادم.'
+        : 'Could not load your properties from the server.')
+    : null;
+
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Helper to reliably identify pending properties even if status is lowercase or undefined
+  const isPendingStatus = (st?: string) => {
+    const s = (st || '').toUpperCase();
+    if (
+      s === 'APPROVED' ||
+      s === 'ACTIVE' ||
+      s === 'REJECTED' ||
+      s === 'SUSPENDED' ||
+      s === 'ARCHIVED' ||
+      s === 'DELETED'
+    ) {
+      return false;
+    }
+    return true; // Any other status (PENDING, PENDING_REVIEW, UNDER_REVIEW, null, undefined, empty) is treated as pending review
+  };
+
+  // Helper to inspect whether a property has any active bookings or occupied beds
+  const getPropertyBookingInfo = (propItem?: any) => {
+    if (!propItem) {
+      return { hasBooking: false, isFull: false, isPartial: false, activeBookingsCount: 0, occupiedBeds: 0 };
+    }
+    const rooms = Array.isArray(propItem?.rooms_)
+      ? propItem.rooms_
+      : Array.isArray(propItem?.rooms)
+      ? propItem.rooms
+      : [];
+    let isFull = false;
+    let isPartial = false;
+    let occupiedBeds = 0;
+
+    if (rooms.length > 0) {
+      const totalBeds = rooms.reduce((acc: number, r: any) => acc + Math.max(1, Number(r.totalBeds || 1)), 0);
+      const availBeds = rooms.reduce(
+        (acc: number, r: any) => acc + Math.max(0, Number(r.availableBeds ?? r.totalBeds ?? 1)),
+        0
+      );
+      occupiedBeds = Math.max(0, totalBeds - availBeds);
+      if (availBeds <= 0 || rooms.every((r: any) => r.status === 'FULL' || Number(r.availableBeds) <= 0)) {
+        isFull = true;
+      } else if (availBeds < totalBeds) {
+        isPartial = true;
+      }
+    } else if (
+      propItem?.status === 'RENTED' ||
+      propItem?.status === 'OCCUPIED' ||
+      propItem?.status === 'BOOKED'
+    ) {
+      isFull = true;
+    }
+
+    const isBookingCurrentlyActive = (b: any) => {
+      const st = String(b?.status || '').toUpperCase();
+      if (!['PENDING', 'CONTACTED', 'CONFIRMED', 'CLOSED'].includes(st)) return false;
+      const end = b?.endDate || b?.end_date;
+      if (!end) return true;
+      const endMs = new Date(end).getTime();
+      return Number.isNaN(endMs) ? true : endMs > Date.now();
+    };
+
+    const fetchedBookings = propertyBookingsMap[String(propItem.id)];
+    const bookingsList =
+      fetchedBookings !== undefined
+        ? fetchedBookings
+        : Array.isArray(propItem?.bookings)
+        ? propItem.bookings
+        : [];
+    const activeBookings = Array.isArray(bookingsList)
+      ? bookingsList.filter(isBookingCurrentlyActive)
+      : [];
+
+    // If live bookings have been fetched from the server, rely on activeBookings count (matching backend deletePropertyService);
+    // otherwise fall back to room bed occupancy while bookings are loading.
+    const hasBooking =
+      fetchedBookings !== undefined
+        ? activeBookings.length > 0
+        : isFull || isPartial || occupiedBeds > 0 || activeBookings.length > 0;
+
+    return {
+      hasBooking,
+      isFull,
+      isPartial,
+      activeBookingsCount: activeBookings.length,
+      occupiedBeds,
+    };
+  };
+
+  const filteredProperties = useMemo(() => {
+    let result = properties;
+    if (statusFilter !== 'ALL') {
+      result = result.filter((p) => {
+        const st = (p.status || '').toUpperCase();
+        if (statusFilter === 'APPROVED') return st === 'APPROVED' || st === 'ACTIVE';
+        if (statusFilter === 'PENDING') return isPendingStatus(p.status);
+        if (statusFilter === 'REJECTED') return st === 'REJECTED';
+        if (statusFilter === 'SUSPENDED') return st === 'SUSPENDED';
+        return true;
+      });
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter((p) => {
+        const title = (p.title || '').toLowerCase();
+        const city = (p.city || '').toLowerCase();
+        const district = (p.district || '').toLowerCase();
+        const address = (p.address || '').toLowerCase();
+        return title.includes(q) || city.includes(q) || district.includes(q) || address.includes(q);
+      });
+    }
+
+    return result;
+  }, [properties, statusFilter, searchQuery]);
+
+  const totalCount = filteredProperties.length;
+  const totalPages = Math.max(1, Math.ceil(totalCount / limit));
+  const paginatedProperties = useMemo(() => {
+    const start = (page - 1) * limit;
+    return filteredProperties.slice(start, start + limit);
+  }, [filteredProperties, page, limit]);
+
+  const stats = useMemo(() => {
+    const total = properties.length;
+    const approved = properties.filter((p) => {
+      const s = (p.status || '').toUpperCase();
+      return s === 'APPROVED' || s === 'ACTIVE';
+    }).length;
+    const pending = properties.filter((p) => isPendingStatus(p.status)).length;
+    return { total, approved, pending };
+  }, [properties]);
+
+  function getPropertyTypeLabel(type?: string) {
+    if (!type) return locale === 'ar' ? 'سكن طلابي' : 'Student Housing';
+    const map: Record<string, { ar: string; en: string }> = {
+      shared_apartment: { ar: 'شقة مشتركة', en: 'Shared Apartment' },
+      private_room: { ar: 'غرفة خاصة', en: 'Private Room' },
+      shared_room: { ar: 'غرفة مشتركة', en: 'Shared Room' },
+      studio: { ar: 'استوديو', en: 'Studio' },
+      entire_apartment: { ar: 'شقة كاملة', en: 'Entire Apartment' },
+      apartment: { ar: 'شقة', en: 'Apartment' },
+      dormitory: { ar: 'سكن طلابي', en: 'Dormitory' },
+    };
+    const key = type.toLowerCase();
+    return map[key] ? (locale === 'ar' ? map[key].ar : map[key].en) : type;
+  }
+
+  function getStatusBadge(status?: string, propItem?: any) {
+    const s = (status || '').toUpperCase();
+    if (s === 'APPROVED' || s === 'ACTIVE') {
+      const { isFull, isPartial } = getPropertyBookingInfo(propItem);
+
+      if (isFull) {
+        return (
+          <span className="dary-badge dary-badge-cancelled" style={{ backgroundColor: '#FEE2E2', color: '#991B1B' }}>
+            🔒 {locale === 'ar' ? 'معتمد (محجوز بالكامل)' : 'Approved (Booked)'}
+          </span>
+        );
+      }
+      if (isPartial) {
+        return (
+          <span className="dary-badge dary-badge-pending" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+            ⚠️ {locale === 'ar' ? 'معتمد (محجوز جزئياً)' : 'Approved (Partial)'}
+          </span>
+        );
+      }
+      return (
+        <span className="dary-badge dary-badge-closed" style={{ backgroundColor: '#DCFCE7', color: '#15803D' }}>
+          ✓ {locale === 'ar' ? 'معتمد ومتاح' : 'Approved & Live'}
+        </span>
+      );
+    }
+    if (isPendingStatus(status)) {
+      return (
+        <span className="dary-badge dary-badge-pending" style={{ backgroundColor: '#FEF9C3', color: '#A16207' }}>
+          ⏳ {locale === 'ar' ? 'قيد مراجعة الإدارة' : 'Pending Review'}
+        </span>
+      );
+    }
+    if (s === 'REJECTED') {
+      return (
+        <span className="dary-badge dary-badge-cancelled" style={{ color: '#DC2626', backgroundColor: '#FEE2E2' }}>
+          ✕ {locale === 'ar' ? 'مرفوض' : 'Rejected'}
+        </span>
+      );
+    }
+    if (s === 'SUSPENDED') {
+      return (
+        <span className="dary-badge dary-badge-cancelled">
+          ⏸️ {locale === 'ar' ? 'معلّق' : 'Suspended'}
+        </span>
+      );
+    }
+    return <span className="dary-badge">{status || '—'}</span>;
+  }
+
+  const handleToggleAvailability = async (propertyId: string) => {
+    if (actionLoadingId) return;
+    setActionLoadingId(propertyId);
+    setPageMessage(null);
+    try {
+      await propertyService.toggleAvailability(propertyId);
+      setPageMessage({
+        type: 'success',
+        text: locale === 'ar' ? 'تم تحديث حالة إتاحة العقار بنجاح.' : 'Property availability updated successfully.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['owner', 'properties'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+      await fetchProperties();
+    } catch (err: any) {
+      setPageMessage({
+        type: 'error',
+        text: err?.message || (locale === 'ar' ? 'فشل تحديث حالة الإتاحة.' : 'Failed to toggle availability.'),
+      });
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleOpenDeleteProperty = (property: OwnerPropertyItem) => {
+    if (actionLoadingId) return;
+    setDeleteModalError(null);
+    const bookingInfo = getPropertyBookingInfo(property);
+    setDeleteModalProperty(property);
+
+    if (bookingInfo.hasBooking) {
+      const detailsAr = bookingInfo.isFull
+        ? 'العقار محجوز بالكامل حالياً'
+        : bookingInfo.isPartial
+        ? `العقار محجوز جزئياً (${bookingInfo.occupiedBeds} سرير مشغول)`
+        : `يوجد ${bookingInfo.activeBookingsCount} حجز نشط مرتبط بهذا العقار`;
+      const detailsEn = bookingInfo.isFull
+        ? 'This property is currently fully booked'
+        : bookingInfo.isPartial
+        ? `This property is partially booked (${bookingInfo.occupiedBeds} occupied beds)`
+        : `There are ${bookingInfo.activeBookingsCount} active bookings linked to this property`;
+
+      setDeleteModalBlockedReason(
+        locale === 'ar'
+          ? `لا يمكن حذف هذا العقار نهائياً لأن ${detailsAr}. لحماية حقوق الطلاب والمالك، يُمنع حذف أي عقار عليه حجز قائم. يمكنك بدلاً من ذلك إخفاء العقار مؤقتاً عبر زر (متاح / غير متاح) أو انتظار انتهاء/إلغاء الحجوزات المرتبطة به.`
+          : `${detailsEn}. Properties with active bookings cannot be permanently deleted. You can temporarily hide the listing using the availability toggle or wait until active bookings are completed/cancelled.`
+      );
+    } else {
+      setDeleteModalBlockedReason(null);
+    }
+  };
+
+  const handleConfirmDeleteProperty = async () => {
+    if (!deleteModalProperty || actionLoadingId) return;
+    const propertyId = deleteModalProperty.id;
+    setActionLoadingId(propertyId);
+    setDeleteModalError(null);
+    setPageMessage(null);
+
+    try {
+      // Double-check live bookings from the server before executing permanent delete
+      const liveBookings = await OwnerService.getPropertyBookings(propertyId).catch(() => []);
+      const nowMs = Date.now();
+      const activeLiveBookings = Array.isArray(liveBookings)
+        ? liveBookings.filter((b: any) => {
+            const st = String(b?.status || '').toUpperCase();
+            if (!['PENDING', 'CONTACTED', 'CONFIRMED', 'CLOSED'].includes(st)) return false;
+            const end = b?.endDate || b?.end_date;
+            if (!end) return true;
+            const endMs = new Date(end).getTime();
+            return Number.isNaN(endMs) ? true : endMs > nowMs;
+          })
+        : [];
+
+      if (activeLiveBookings.length > 0) {
+        setPropertyBookingsMap((prev) => ({ ...prev, [propertyId]: liveBookings }));
+        setDeleteModalBlockedReason(
+          locale === 'ar'
+            ? `لا يمكن حذف هذا العقار لوجود ${activeLiveBookings.length} طلب حجز قائم عليه في النظام. يرجى إنهاء أو إلغاء الحجوزات أولاً من قسم (الحجوزات).`
+            : `Cannot delete this property because it has ${activeLiveBookings.length} active booking(s) in the system. Please complete or cancel them first.`
+        );
+        setActionLoadingId(null);
+        return;
+      }
+
+      const rooms =
+        (deleteModalProperty as any).rooms_ ||
+        (Array.isArray(deleteModalProperty.rooms) ? deleteModalProperty.rooms : []);
+      await propertyService.deleteProperty(propertyId, rooms);
+
+      // Immediately remove from local UI and query caches
+      setLocallyDeletedIds((prev) => {
+        const next = new Set(prev);
+        next.add(String(propertyId));
+        return next;
+      });
+      queryClient.setQueryData(['owner', 'properties', 'my'], (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.filter((p: any) => String(p?.id) !== String(propertyId));
+      });
+      queryClient.invalidateQueries({ queryKey: ['owner', 'properties'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'properties'] });
+      queryClient.invalidateQueries({ queryKey: ['properties'] });
+
+      setDeleteModalProperty(null);
+      setDeleteModalBlockedReason(null);
+      setPageMessage({
+        type: 'success',
+        text: locale === 'ar' ? '✓ تم حذف العقار نهائياً بنجاح.' : '✓ Property permanently deleted.',
+      });
+      await fetchProperties();
+    } catch (err: any) {
+      const rawMsg = String(err?.message || '');
+      const isBookingConstraint =
+        /booking|foreign key|constraint|rented|occupied|حجز|مرتبط/i.test(rawMsg) ||
+        err?.status === 409 ||
+        err?.status === 400;
+
+      if (isBookingConstraint) {
+        setDeleteModalBlockedReason(
+          locale === 'ar'
+            ? 'تعذر حذف العقار لوجود سجلات حجوزات مرتبطة به في قاعدة البيانات. لا يمكن حذف العقار طالما ارتبطت به حجوزات، ولكن يمكنك إيقاف عرضه للطلاب عبر زر (🟢 متاح / 🔴 غير متاح).'
+            : 'Cannot delete this property because booking records are linked to it in the database. You can hide it from students using the Availability toggle instead.'
+        );
+      } else {
+        setDeleteModalError(
+          rawMsg || (locale === 'ar' ? 'فشل حذف العقار من الخادم. يرجى المحاولة مرة أخرى.' : 'Failed to delete property.')
+        );
+      }
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleOpenManageRooms = (property: OwnerPropertyItem) => {
+    setManageRoomsProperty(property);
+    const rooms = (property as any).rooms_ || (property as any).propertyRooms || (Array.isArray(property.rooms) ? property.rooms : []) || [];
+    setRoomsList(Array.isArray(rooms) ? rooms : []);
+    setRoomModalMessage(null);
+    setEditingRoomId(null);
+  };
+
+  const handleAddRoom = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!manageRoomsProperty) return;
+
+    if (Number(newPricePerBed) <= 0) {
+      setRoomModalMessage({
+        type: 'error',
+        text: locale === 'ar' ? 'سعر السرير يجب أن يكون أكبر من 0.' : 'Price per bed must be greater than 0.',
+      });
+      return;
+    }
+
+    if (Number(newTotalBeds) <= 0) {
+      setRoomModalMessage({
+        type: 'error',
+        text: locale === 'ar' ? 'إجمالي الأسرّة يجب أن يكون 1 على الأقل.' : 'Total beds must be at least 1.',
+      });
+      return;
+    }
+
+    if (Number(newAvailableBeds) > Number(newTotalBeds)) {
+      setRoomModalMessage({
+        type: 'error',
+        text: locale === 'ar' ? 'عدد الأسرّة المتاحة لا يمكن أن يتجاوز إجمالي الأسرّة.' : 'Available beds cannot exceed total beds.',
+      });
+      return;
+    }
+
+    setIsAddingRoom(true);
+    setRoomModalMessage(null);
+    try {
+      // Always send as FormData so the backend receives the photo in the same request.
+      const formData = new FormData();
+      formData.append('roomType', newRoomType);
+      formData.append('pricePerBed', String(Number(newPricePerBed)));
+      formData.append('totalBeds', String(Number(newTotalBeds)));
+      formData.append('availableBeds', String(Number(newAvailableBeds)));
+      if (newRoomPhoto) {
+        formData.append('photo', newRoomPhoto);
+      }
+
+      const res = await propertyService.addRoom(manageRoomsProperty.id, formData);
+      const createdRoom = res?.room || res?.data?.room || res?.data || res;
+
+      setRoomModalMessage({
+        type: 'success',
+        text: locale === 'ar' ? 'تمت إضافة الغرفة بنجاح!' : 'Room added successfully!',
+      });
+      setRoomsList((prev) => [...prev, createdRoom]);
+      setNewRoomPhoto(null);
+      // Reset form to defaults
+      setNewRoomType('SINGLE');
+      setNewPricePerBed(2000);
+      setNewTotalBeds(1);
+      setNewAvailableBeds(1);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'my-properties'] });
+      fetchProperties();
+    } catch (err: any) {
+      setRoomModalMessage({
+        type: 'error',
+        text: err?.message || (locale === 'ar' ? 'فشل إضافة الغرفة.' : 'Failed to add room.'),
+      });
+    } finally {
+      setIsAddingRoom(false);
+    }
+  };
+
+  const handleDeleteRoom = async (roomId: string) => {
+    if (!window.confirm(locale === 'ar' ? 'هل أنت متأكد من رغبتك في حذف هذه الغرفة؟' : 'Are you sure you want to delete this room?')) {
+      return;
+    }
+    try {
+      await propertyService.deleteRoom(roomId);
+      setRoomsList((prev) => prev.filter((r) => r.id !== roomId));
+      queryClient.invalidateQueries({ queryKey: ['owner', 'my-properties'] });
+      fetchProperties();
+    } catch (err: any) {
+      setRoomModalMessage({
+        type: 'error',
+        text: err?.message || (locale === 'ar' ? 'فشل حذف الغرفة.' : 'Failed to delete room.'),
+      });
+    }
+  };
+
+  const handleSaveEditRoom = async (roomId: string) => {
+    setIsSavingRoom(true);
+    try {
+      await propertyService.updateRoom(roomId, {
+        pricePerBed: Number(editPrice),
+        totalBeds: Number(editTotalBeds),
+        availableBeds: Number(editAvailableBeds),
+      });
+      setRoomsList((prev) =>
+        prev.map((r) =>
+          r.id === roomId
+            ? { ...r, pricePerBed: Number(editPrice), totalBeds: Number(editTotalBeds), availableBeds: Number(editAvailableBeds) }
+            : r
+        )
+      );
+      setEditingRoomId(null);
+      queryClient.invalidateQueries({ queryKey: ['owner', 'my-properties'] });
+      fetchProperties();
+    } catch (err: any) {
+      setRoomModalMessage({
+        type: 'error',
+        text: err?.message || (locale === 'ar' ? 'فشل تعديل الغرفة.' : 'Failed to update room.'),
+      });
+    } finally {
+      setIsSavingRoom(false);
+    }
+  };
+
+  return (
+    <div>
+      {/* Action Banner */}
+      {pageMessage && (
+        <div
+          style={{
+            marginBottom: '1rem',
+            padding: '0.85rem 1.25rem',
+            borderRadius: '10px',
+            backgroundColor: pageMessage.type === 'success' ? '#DEF7EC' : '#FDE8E8',
+            color: pageMessage.type === 'success' ? '#03543F' : '#9B1C1C',
+            border: `1px solid ${pageMessage.type === 'success' ? '#31C48D' : '#F98080'}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontWeight: 600,
+            fontSize: '0.9rem',
+          }}
+        >
+          <span>{pageMessage.type === 'success' ? '✓ ' : '✕ '}{pageMessage.text}</span>
+          <button
+            type="button"
+            onClick={() => setPageMessage(null)}
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'inherit', fontWeight: 700, fontSize: '1rem' }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+
+      {/* 1. Header with Stats & Actions */}
+      <div className="dary-welcome-card" style={{ marginBottom: '1.5rem' }}>
+        <div>
+          <h1 className="dary-welcome-title">
+            {locale === 'ar' ? 'عقاراتي المسجلة 🏢' : 'My Registered Properties 🏢'}
+          </h1>
+          <p className="dary-welcome-subtitle">
+            {locale === 'ar'
+              ? 'متابعة وإدارة جميع العقارات والوحدات السكنية المضافة لحسابك وحالة اعتماد كل عقار.'
+              : 'Manage student housing properties registered under your account.'}
+          </p>
+        </div>
+
+        <div className="dary-welcome-actions">
+          <Link
+            to="new"
+            className="dary-primary-btn"
+            style={{ textDecoration: 'none', backgroundColor: '#16A34A', display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}
+          >
+            <span>+</span>
+            <span>{locale === 'ar' ? 'إضافة عقار جديد' : 'Add New Property'}</span>
+          </Link>
+        </div>
+      </div>
+
+      {/* 2. Quick Metrics Row */}
+      <div className="dary-metrics-grid" style={{ marginBottom: '1.5rem' }}>
+        <div className="dary-metric-card">
+          <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#EEF3FF', color: '#2F6BFF' }}>
+            🏢
+          </div>
+          <div>
+            <h3 className="dary-metric-number">
+              <AnimatedCounter value={stats.total} loading={loading} />
+            </h3>
+            <p className="dary-metric-label">
+              {locale === 'ar' ? 'إجمالي العقارات المسجلة' : 'Total Properties'}
+            </p>
+          </div>
+        </div>
+
+        <div className="dary-metric-card">
+          <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#F0FDF4', color: '#16A34A' }}>
+            ✓
+          </div>
+          <div>
+            <h3 className="dary-metric-number">
+              <AnimatedCounter value={stats.approved} loading={loading} />
+            </h3>
+            <p className="dary-metric-label">
+              {locale === 'ar' ? 'معتمدة ومنشورة للطلاب' : 'Approved & Live'}
+            </p>
+          </div>
+        </div>
+
+        <div className="dary-metric-card">
+          <div className="dary-metric-icon-wrap" style={{ backgroundColor: '#FEF9C3', color: '#CA8A04' }}>
+            ⏳
+          </div>
+          <div>
+            <h3 className="dary-metric-number">
+              <AnimatedCounter value={stats.pending} loading={loading} />
+            </h3>
+            <p className="dary-metric-label">
+              {locale === 'ar' ? 'قيد مراجعة الإدارة' : 'Pending Review'}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Filter & Search Controls */}
+      <div className="dary-section-card" style={{ marginBottom: '1.5rem', padding: '1rem 1.25rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+          {/* Status Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--dary-navy)', marginInlineEnd: '0.5rem' }}>
+              {locale === 'ar' ? 'تصفية الحالة:' : 'Filter Status:'}
+            </span>
+            {[
+              { key: 'ALL', label: locale === 'ar' ? `الكل (${stats.total})` : `All (${stats.total})` },
+              { key: 'APPROVED', label: locale === 'ar' ? `معتمد ومتاح (${stats.approved})` : `Approved (${stats.approved})` },
+              { key: 'PENDING', label: locale === 'ar' ? `قيد المراجعة (${stats.pending})` : `Pending (${stats.pending})` },
+              { key: 'REJECTED', label: locale === 'ar' ? 'مرفوض' : 'Rejected' },
+              { key: 'SUSPENDED', label: locale === 'ar' ? 'معلق' : 'Suspended' },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => {
+                  setStatusFilter(tab.key);
+                  setPage(1);
+                }}
+                style={{
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '8px',
+                  border: statusFilter === tab.key ? '1px solid var(--dary-blue)' : '1px solid var(--dary-border)',
+                  backgroundColor: statusFilter === tab.key ? 'var(--dary-blue)' : '#FFFFFF',
+                  color: statusFilter === tab.key ? '#FFFFFF' : 'var(--dary-navy)',
+                  fontSize: '0.825rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div style={{ minWidth: '240px', flex: '1 1 240px', maxWidth: '360px' }}>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder={locale === 'ar' ? '🔍 ابحث بالعنوان أو المدينة أو الحي...' : '🔍 Search by title, city, district...'}
+              className="dary-input"
+              style={{ padding: '0.45rem 0.85rem', fontSize: '0.85rem', margin: 0 }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Properties Grid */}
+      <div className="dary-section-card">
+        {loading ? (
+          <div style={{ padding: '3rem 0', textAlign: 'center', color: 'var(--dary-muted)' }}>
+            <div style={{ width: '36px', height: '36px', border: '3px solid #E2E8F0', borderTopColor: '#0B2A4A', borderRadius: '50%', margin: '0 auto 1rem', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ margin: 0, fontSize: '0.9rem' }}>
+              {locale === 'ar' ? 'جاري تحميل العقارات...' : 'Loading properties...'}
+            </p>
+          </div>
+        ) : error ? (
+          <div className="dary-error-state">
+            <p className="dary-error-title">{locale === 'ar' ? 'خطأ في جلب العقارات' : 'API Error'}</p>
+            <p className="dary-error-desc">{error}</p>
+            <button type="button" className="dary-retry-btn" onClick={fetchProperties}>
+              {locale === 'ar' ? 'إعادة المحاولة' : 'Retry'}
+            </button>
+          </div>
+        ) : filteredProperties.length === 0 ? (
+          <div className="dary-empty-state">
+            <div className="dary-empty-icon">🏢</div>
+            <h4 className="dary-empty-title">
+              {statusFilter === 'ALL' && !searchQuery
+                ? locale === 'ar'
+                  ? 'لا توجد عقارات مسجلة حتى الآن'
+                  : 'No Properties Registered Yet'
+                : locale === 'ar'
+                ? 'لا توجد عقارات مطابقة لبحثك أو الفلتر المختار'
+                : 'No Properties Match Your Search or Filter'}
+            </h4>
+            <p className="dary-empty-desc">
+              {locale === 'ar'
+                ? 'ابدأ بإضافة عقاراتك وسكناتك الطلابية لتتم مراجعتها ونشرها للطلاب في أسرع وقت.'
+                : 'Add student housing properties to start receiving booking requests from students.'}
+            </p>
+            <Link
+              to="new"
+              className="dary-primary-btn"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginTop: '1rem',
+                textDecoration: 'none',
+              }}
+            >
+              <span>+</span> {locale === 'ar' ? 'إضافة عقار جديد' : 'Add Property'}
+            </Link>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+              {paginatedProperties.map((property) => {
+              const image =
+                property.primaryImage ||
+                (Array.isArray(property.images) && property.images.length > 0
+                  ? typeof property.images[0] === 'string'
+                    ? property.images[0]
+                    : property.images[0]?.url
+                  : '') ||
+                (Array.isArray(property.rooms_) && property.rooms_.length > 0
+                  ? property.rooms_[0]?.photoUrl
+                  : '') ||
+                'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&q=80&w=600&h=400&fit=crop';
+
+              const price =
+                property.startingPrice ||
+                property.price ||
+                (property as any).pricePerMonth ||
+                (Array.isArray(property.rooms_) && property.rooms_.length > 0
+                  ? Math.min(...property.rooms_.map((r: any) => Number(r.pricePerBed) || 0).filter((p: number) => p > 0))
+                  : null);
+
+              const roomCount =
+                (Array.isArray(property.rooms_) && property.rooms_.length > 0 ? property.rooms_.length : null) ||
+                (typeof property.rooms === 'number' && property.rooms > 0 ? property.rooms : null) ||
+                (Array.isArray((property as any).roomsConfig) ? (property as any).roomsConfig.length : null) ||
+                1;
+
+              const isPending = isPendingStatus(property.status);
+              const isRejected = (property.status || '').toUpperCase() === 'REJECTED';
+              const rejectReasonText = property.rejectionReason || (property as any).rejection_reason;
+
+              return (
+                <div
+                  key={property.id}
+                  style={{
+                    border: '1px solid var(--dary-border)',
+                    borderRadius: '14px',
+                    overflow: 'hidden',
+                    backgroundColor: '#FFFFFF',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  }}
+                >
+                  <div style={{ position: 'relative', height: '180px', backgroundColor: '#F1F5F9' }}>
+                    <img
+                      src={image}
+                      alt={property.title}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&q=80&w=600&h=400&fit=crop';
+                      }}
+                    />
+                    <div style={{ position: 'absolute', top: '10px', insetInlineStart: '10px' }}>
+                      {getStatusBadge(property.status, property)}
+                    </div>
+                  </div>
+
+                  <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <h3 style={{ margin: '0 0 0.35rem', fontSize: '1.05rem', color: 'var(--dary-navy)', fontWeight: 700, lineHeight: 1.4 }}>
+                      {property.title}
+                    </h3>
+                    <p style={{ margin: '0 0 0.75rem', fontSize: '0.825rem', color: 'var(--dary-muted)' }}>
+                      📍 {property.city ? `${property.city} • ` : ''}
+                      {property.address || property.district || property.governorate || ''}
+                    </p>
+
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.85rem', fontSize: '0.8rem', color: 'var(--dary-muted)' }}>
+                      <span style={{ backgroundColor: '#F8FAFC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                        🏢 {getPropertyTypeLabel(property.propertyType)}
+                      </span>
+                      <span style={{ backgroundColor: '#F8FAFC', padding: '0.25rem 0.65rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                        🛏️ {roomCount} {locale === 'ar' ? 'غرف' : 'Rooms'}
+                      </span>
+                    </div>
+
+                    {isPending && (
+                      <div style={{ backgroundColor: '#FEF9C3', border: '1px solid #FDE047', borderRadius: '8px', padding: '0.5rem 0.75rem', marginBottom: '0.85rem', fontSize: '0.775rem', color: '#854D0E', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        <span>ℹ️</span>
+                        <span>{locale === 'ar' ? 'قيد مراجعة واعتماد الإدارة ليظهر للطلاب' : 'Under admin review to go live'}</span>
+                      </div>
+                    )}
+
+                    {isRejected && (
+                      <div
+                        style={{
+                          backgroundColor: '#FEF2F2',
+                          border: '1px solid #FECACA',
+                          borderRadius: '8px',
+                          padding: '0.65rem 0.85rem',
+                          marginBottom: '0.85rem',
+                          fontSize: '0.8rem',
+                          color: '#991B1B',
+                        }}
+                      >
+                        <div style={{ fontWeight: 700, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span>🚫</span>
+                          <span>{locale === 'ar' ? 'سبب رفض النشر من الإدارة:' : 'Rejection Reason from Admin:'}</span>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '0.825rem', color: '#B91C1C', lineHeight: 1.5, wordBreak: 'break-word' }}>
+                          {rejectReasonText || (locale === 'ar' ? 'لم يتم إرفاق سبب محدد. يرجى مراجعة تفاصيل العقار وتحديثها.' : 'No specific reason provided. Please review property details.')}
+                        </p>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '0.75rem', borderTop: '1px solid var(--dary-border)', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <div>
+                        <span style={{ fontWeight: 800, color: 'var(--dary-blue)', fontSize: '1.15rem' }}>
+                          {price && !isNaN(Number(price)) ? Number(price).toLocaleString() : '—'}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--dary-muted)', marginInlineStart: '0.25rem' }}>
+                          {locale === 'ar' ? 'ج.م / شهرياً' : 'EGP / mo'}
+                        </span>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                        {/* Toggle Availability */}
+                        <button
+                          type="button"
+                          disabled={actionLoadingId === property.id}
+                          onClick={() => handleToggleAvailability(property.id)}
+                          title={locale === 'ar' ? 'تبديل حالة التوفر للطلاب' : 'Toggle availability'}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            backgroundColor: property.isAvailable !== false ? '#F0FDF4' : '#FEF2F2',
+                            color: property.isAvailable !== false ? '#15803D' : '#DC2626',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: actionLoadingId === property.id ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          {actionLoadingId === property.id
+                            ? '⏳'
+                            : property.isAvailable !== false
+                            ? (locale === 'ar' ? '🟢 متاح' : '🟢 Active')
+                            : (locale === 'ar' ? '🔴 غير متاح' : '🔴 Hidden')}
+                        </button>
+
+                        {/* Manage Rooms */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenManageRooms(property)}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            border: '1px solid #2F6BFF',
+                            backgroundColor: '#EFF6FF',
+                            color: '#2F6BFF',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          🛏️ {locale === 'ar' ? 'الغرف' : 'Rooms'}
+                        </button>
+
+                        {/* Image Manager */}
+                        <button
+                          type="button"
+                          onClick={() => setImageManagerProperty(property)}
+                          title={locale === 'ar' ? 'إدارة صور العقار' : 'Manage property images'}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            border: '1px solid #A78BFA',
+                            backgroundColor: '#F5F3FF',
+                            color: '#7C3AED',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          🖼️ {locale === 'ar' ? 'الصور' : 'Images'}
+                        </button>
+
+                        {/* Edit Property */}
+                        <Link
+                          to={`/owner-dashboard/properties/${property.id}/edit`}
+                          title={locale === 'ar' ? 'تعديل بيانات العقار' : 'Edit property details'}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            border: '1px solid #FCD34D',
+                            backgroundColor: '#FFFBEB',
+                            color: '#92400E',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            textDecoration: 'none',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.2rem',
+                          }}
+                        >
+                          ✏️ {locale === 'ar' ? 'تعديل' : 'Edit'}
+                        </Link>
+
+                        {/* View Listing */}
+                        <Link
+                          to={`/properties/${property.id}`}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            borderRadius: '6px',
+                            backgroundColor: '#0B2A4A',
+                            color: '#FFFFFF',
+                            fontSize: '0.75rem',
+                            fontWeight: 600,
+                            textDecoration: 'none',
+                          }}
+                        >
+                          {locale === 'ar' ? 'معاينة' : 'View'}
+                        </Link>
+
+                        {/* Delete Property */}
+                        {(() => {
+                          const { hasBooking } = getPropertyBookingInfo(property);
+                          return (
+                            <button
+                              type="button"
+                              disabled={actionLoadingId === property.id}
+                              onClick={() => handleOpenDeleteProperty(property)}
+                              title={
+                                hasBooking
+                                  ? locale === 'ar'
+                                    ? 'لا يمكن حذف العقار لوجود حجز قائم عليه'
+                                    : 'Cannot delete property while it has an active booking'
+                                  : locale === 'ar'
+                                  ? 'حذف العقار نهائياً'
+                                  : 'Delete property permanently'
+                              }
+                              style={{
+                                padding: '0.35rem 0.55rem',
+                                borderRadius: '6px',
+                                border: hasBooking ? '1px solid #CBD5E1' : '1px solid #FCA5A5',
+                                backgroundColor: hasBooking ? '#F8FAFC' : '#FEF2F2',
+                                color: hasBooking ? '#64748B' : '#DC2626',
+                                fontSize: '0.75rem',
+                                fontWeight: 700,
+                                cursor: actionLoadingId === property.id ? 'not-allowed' : 'pointer',
+                                opacity: hasBooking ? 0.85 : 1,
+                              }}
+                            >
+                              {actionLoadingId === property.id ? '⏳' : hasBooking ? '🔒' : '🗑️'}
+                            </button>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination Controls */}
+          {totalCount > 0 && (
+            <div style={{ marginTop: '1.5rem' }}>
+              <Pagination
+                page={page}
+                totalPages={totalPages}
+                totalCount={totalCount}
+                limit={limit}
+                onPageChange={(p) => setPage(p)}
+                onLimitChange={(l) => {
+                  setLimit(l);
+                  setPage(1);
+                }}
+                itemNameAr="عقار"
+                itemNameEn="properties"
+              />
+            </div>
+          )}
+          </>
+        )}
+      </div>
+
+      {/* ── Manage Rooms Modal ────────────────────────────────────────── */}
+      {manageRoomsProperty && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              padding: '2rem',
+              maxWidth: '750px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflowY: 'auto',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              textAlign: locale === 'ar' ? 'right' : 'left',
+            }}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0B2A4A', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span>🛏️</span>
+                  <span>{locale === 'ar' ? 'إدارة غرف وأسرة العقار' : 'Manage Rooms & Beds'}</span>
+                </h3>
+                <p style={{ margin: '0.25rem 0 0', fontSize: '0.85rem', color: '#64748B' }}>
+                  {manageRoomsProperty.title}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManageRoomsProperty(null)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Room Modal Message Banner */}
+            {roomModalMessage && (
+              <div
+                style={{
+                  marginBottom: '1.25rem',
+                  padding: '0.75rem 1rem',
+                  borderRadius: '8px',
+                  backgroundColor: roomModalMessage.type === 'success' ? '#DEF7EC' : '#FDE8E8',
+                  color: roomModalMessage.type === 'success' ? '#03543F' : '#9B1C1C',
+                  fontSize: '0.85rem',
+                  fontWeight: 600,
+                }}
+              >
+                {roomModalMessage.type === 'success' ? '✓ ' : '✕ '}{roomModalMessage.text}
+              </div>
+            )}
+
+            {/* Existing Rooms Section */}
+            <div style={{ marginBottom: '2rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0B2A4A', marginBottom: '0.85rem' }}>
+                {locale === 'ar' ? '1. الغرف الحالية المسجلة' : '1. Existing Rooms'} ({roomsList.length})
+              </h4>
+
+              {roomsList.length === 0 ? (
+                <div style={{ padding: '1.5rem', textAlign: 'center', backgroundColor: '#F8FAFC', borderRadius: '10px', border: '1px dashed #CBD5E1', color: '#64748B', fontSize: '0.875rem' }}>
+                  {locale === 'ar' ? 'لا توجد غرف مسجلة لهذا السكن بعد. يمكنك إضافة أول غرفة بالأسفل.' : 'No rooms registered yet. Add a room below.'}
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {roomsList.map((room, idx) => {
+                    const isEditing = editingRoomId === room.id;
+                    const rType = room.roomType || room.type || 'SINGLE';
+                    const rPrice = room.pricePerBed || room.monthlyRent || room.price || 0;
+                    const rTotal = room.totalBeds ?? 1;
+                    const rAvail = room.availableBeds ?? rTotal;
+
+                    return (
+                      <div
+                        key={room.id || idx}
+                        style={{
+                          border: '1px solid #E2E8F0',
+                          borderRadius: '10px',
+                          padding: '1rem',
+                          backgroundColor: isEditing ? '#F0F9FF' : '#FFFFFF',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '0.65rem',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                            <span style={{ fontWeight: 700, color: '#0B2A4A', fontSize: '0.95rem' }}>
+                              🚪 {locale === 'ar' ? `غرفة ${rType}` : `Room ${rType}`}
+                            </span>
+                            <span
+                              style={{
+                                padding: '0.2rem 0.55rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.72rem',
+                                fontWeight: 700,
+                                backgroundColor: rAvail > 0 ? '#DCFCE7' : '#FEE2E2',
+                                color: rAvail > 0 ? '#15803D' : '#B91C1C',
+                              }}
+                            >
+                              {rAvail > 0 ? (locale === 'ar' ? 'شاغر' : 'Available') : (locale === 'ar' ? 'ممتلئ' : 'Full')}
+                            </span>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '0.4rem' }}>
+                            {!isEditing ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingRoomId(room.id);
+                                    setEditPrice(rPrice);
+                                    setEditTotalBeds(rTotal);
+                                    setEditAvailableBeds(rAvail);
+                                  }}
+                                  style={{
+                                    padding: '0.3rem 0.6rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #CBD5E1',
+                                    backgroundColor: '#FFFFFF',
+                                    color: '#0B2A4A',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 600,
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  ✏️ {locale === 'ar' ? 'تعديل' : 'Edit'}
+                                </button>
+                                {room.id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteRoom(room.id)}
+                                    style={{
+                                      padding: '0.3rem 0.6rem',
+                                      borderRadius: '6px',
+                                      border: '1px solid #FCA5A5',
+                                      backgroundColor: '#FEF2F2',
+                                      color: '#DC2626',
+                                      fontSize: '0.75rem',
+                                      fontWeight: 600,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    🗑️ {locale === 'ar' ? 'حذف' : 'Delete'}
+                                  </button>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  disabled={isSavingRoom}
+                                  onClick={() => handleSaveEditRoom(room.id)}
+                                  style={{
+                                    padding: '0.3rem 0.75rem',
+                                    borderRadius: '6px',
+                                    border: 'none',
+                                    backgroundColor: '#16A34A',
+                                    color: '#FFFFFF',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 700,
+                                    cursor: isSavingRoom ? 'not-allowed' : 'pointer',
+                                  }}
+                                >
+                                  {isSavingRoom ? '...' : (locale === 'ar' ? '✓ حفظ' : '✓ Save')}
+                                </button>
+                                <button
+                                  type="button"
+                                  disabled={isSavingRoom}
+                                  onClick={() => setEditingRoomId(null)}
+                                  style={{
+                                    padding: '0.3rem 0.6rem',
+                                    borderRadius: '6px',
+                                    border: '1px solid #CBD5E1',
+                                    backgroundColor: '#FFFFFF',
+                                    color: '#475569',
+                                    fontSize: '0.75rem',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Room Details / Edit Row */}
+                        {isEditing ? (
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', paddingTop: '0.5rem', borderTop: '1px dashed #CBD5E1' }}>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.2rem' }}>
+                                {locale === 'ar' ? 'سعر السرير (ج.م):' : 'Bed Price (EGP):'}
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={editPrice}
+                                onChange={(e) => setEditPrice(Number(e.target.value))}
+                                style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.2rem' }}>
+                                {locale === 'ar' ? 'إجمالي الأسرة:' : 'Total Beds:'}
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={editTotalBeds}
+                                onChange={(e) => setEditTotalBeds(Number(e.target.value))}
+                                style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#475569', marginBottom: '0.2rem' }}>
+                                {locale === 'ar' ? 'الأسرة الشاغرة:' : 'Available Beds:'}
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                max={editTotalBeds}
+                                value={editAvailableBeds}
+                                onChange={(e) => setEditAvailableBeds(Number(e.target.value))}
+                                style={{ width: '100%', padding: '0.4rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                              />
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '1.25rem', fontSize: '0.825rem', color: '#64748B', flexWrap: 'wrap' }}>
+                            <span>💰 {locale === 'ar' ? 'سعر السرير:' : 'Bed Price:'} <strong style={{ color: '#0B2A4A' }}>{Number(rPrice).toLocaleString()} ج.م</strong></span>
+                            <span>🛏️ {locale === 'ar' ? 'الأسرة المتاحة:' : 'Available Beds:'} <strong style={{ color: '#0B2A4A' }}>{rAvail} من أصل {rTotal}</strong></span>
+                            {room.photoUrl && (
+                              <a href={room.photoUrl} target="_blank" rel="noreferrer" style={{ color: '#2F6BFF', textDecoration: 'underline' }}>
+                                📷 {locale === 'ar' ? 'صورة الغرفة' : 'Room Photo'}
+                              </a>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Add New Room Section */}
+            <div style={{ backgroundColor: '#F8FAFC', borderRadius: '12px', border: '1px solid #E2E8F0', padding: '1.25rem' }}>
+              <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#0B2A4A', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                <span>➕</span>
+                <span>{locale === 'ar' ? '2. إضافة غرفة جديدة لهذا السكن' : '2. Add New Room'}</span>
+              </h4>
+
+              <form onSubmit={handleAddRoom}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.85rem', marginBottom: '1rem' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                      {locale === 'ar' ? 'نوع الغرفة' : 'Room Type'} *
+                    </label>
+                    <select
+                      value={newRoomType}
+                      onChange={(e: any) => {
+                        const t = e.target.value;
+                        setNewRoomType(t);
+                        const defaultBeds = t === 'SINGLE' ? 1 : t === 'DOUBLE' ? 2 : t === 'TRIPLE' ? 3 : 4;
+                        setNewTotalBeds(defaultBeds);
+                        setNewAvailableBeds(defaultBeds);
+                      }}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem', backgroundColor: '#FFFFFF' }}
+                    >
+                      <option value="SINGLE">{locale === 'ar' ? 'فردية (SINGLE - سرير واحد)' : 'Single (1 Bed)'}</option>
+                      <option value="DOUBLE">{locale === 'ar' ? 'ثنائية (DOUBLE - سريرين)' : 'Double (2 Beds)'}</option>
+                      <option value="TRIPLE">{locale === 'ar' ? 'ثلاثية (TRIPLE - 3 أسرة)' : 'Triple (3 Beds)'}</option>
+                      <option value="QUAD">{locale === 'ar' ? 'رباعية (QUAD - 4 أسرة)' : 'Quad (4 Beds)'}</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                      {locale === 'ar' ? 'سعر السرير شهرياً (ج.م)' : 'Price Per Bed (EGP)'} *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={100}
+                      value={newPricePerBed}
+                      onChange={(e) => setNewPricePerBed(Number(e.target.value))}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                      {locale === 'ar' ? 'إجمالي الأسرة' : 'Total Beds'} *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={1}
+                      max={12}
+                      value={newTotalBeds}
+                      onChange={(e) => {
+                        const val = Number(e.target.value);
+                        setNewTotalBeds(val);
+                        if (newAvailableBeds > val) setNewAvailableBeds(val);
+                      }}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                      {locale === 'ar' ? 'الأسرة الشاغرة حالياً' : 'Available Beds'} *
+                    </label>
+                    <input
+                      type="number"
+                      required
+                      min={0}
+                      max={newTotalBeds}
+                      value={newAvailableBeds}
+                      onChange={(e) => setNewAvailableBeds(Number(e.target.value))}
+                      style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #CBD5E1', fontSize: '0.85rem' }}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, color: '#475569', marginBottom: '0.25rem' }}>
+                    {locale === 'ar' ? 'صورة الغرفة (اختياري)' : 'Room Photo (Optional)'}
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setNewRoomPhoto(e.target.files?.[0] || null)}
+                    style={{ fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setManageRoomsProperty(null)}
+                    style={{
+                      padding: '0.55rem 1.15rem',
+                      borderRadius: '8px',
+                      border: '1px solid #CBD5E1',
+                      backgroundColor: '#FFFFFF',
+                      color: '#475569',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {locale === 'ar' ? 'إغلاق' : 'Close'}
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isAddingRoom}
+                    style={{
+                      padding: '0.55rem 1.35rem',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: '#2F6BFF',
+                      color: '#FFFFFF',
+                      fontWeight: 700,
+                      cursor: isAddingRoom ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    {isAddingRoom
+                      ? (locale === 'ar' ? 'جاري الإضافة...' : 'Adding...')
+                      : (locale === 'ar' ? '➕ إضافة الغرفة' : '➕ Add Room')}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Image Manager Modal ───────────────────────────────────────────── */}
+      {imageManagerProperty && (
+        <ImageManagerModal
+          propertyId={imageManagerProperty.id}
+          propertyTitle={String(imageManagerProperty.title || '')}
+          onClose={() => setImageManagerProperty(null)}
+        />
+      )}
+
+      {/* ── Delete Property / Active Booking Protection Modal ─────────────── */}
+      {deleteModalProperty && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1100,
+            padding: '1rem',
+          }}
+          onClick={() => {
+            if (!actionLoadingId) {
+              setDeleteModalProperty(null);
+              setDeleteModalBlockedReason(null);
+              setDeleteModalError(null);
+            }
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: '#FFFFFF',
+              borderRadius: '16px',
+              padding: '1.75rem',
+              maxWidth: '480px',
+              width: '100%',
+              boxShadow: '0 20px 45px rgba(15, 23, 42, 0.25)',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ fontSize: '2.6rem', textAlign: 'center', marginBottom: '0.6rem' }}>
+              {deleteModalBlockedReason ? '🔒' : '🗑️'}
+            </div>
+
+            <h3
+              style={{
+                margin: '0 0 0.5rem',
+                fontSize: '1.15rem',
+                fontWeight: 800,
+                color: deleteModalBlockedReason ? '#92400E' : '#991B1B',
+                textAlign: 'center',
+              }}
+            >
+              {deleteModalBlockedReason
+                ? locale === 'ar'
+                  ? 'لا يمكن حذف عقار عليه حجز قائم'
+                  : 'Cannot Delete Property With Active Booking'
+                : locale === 'ar'
+                ? 'تأكيد حذف العقار نهائياً'
+                : 'Confirm Permanent Property Deletion'}
+            </h3>
+
+            <div
+              style={{
+                backgroundColor: '#F8FAFC',
+                border: '1px solid #E2E8F0',
+                borderRadius: '10px',
+                padding: '0.65rem 0.9rem',
+                marginBottom: '1rem',
+                textAlign: 'center',
+                fontWeight: 700,
+                color: 'var(--dary-navy)',
+                fontSize: '0.92rem',
+              }}
+            >
+              🏢 {deleteModalProperty.title}
+            </div>
+
+            {deleteModalBlockedReason ? (
+              <div
+                style={{
+                  backgroundColor: '#FFFBEB',
+                  border: '1px solid #FDE68A',
+                  borderRadius: '10px',
+                  padding: '0.9rem 1rem',
+                  marginBottom: '1.25rem',
+                  fontSize: '0.86rem',
+                  color: '#92400E',
+                  lineHeight: 1.65,
+                }}
+              >
+                {deleteModalBlockedReason}
+              </div>
+            ) : (
+              <p
+                style={{
+                  margin: '0 0 1.25rem',
+                  fontSize: '0.88rem',
+                  color: '#475569',
+                  lineHeight: 1.6,
+                  textAlign: 'center',
+                }}
+              >
+                {locale === 'ar'
+                  ? 'هل أنت متأكد من رغبتك في حذف هذا العقار نهائياً؟ لا توجد حجوزات نشطة على هذا العقار حالياً، وسيتم إزالته بالكامل من حسابك ومن نتائج البحث للطلاب.'
+                  : 'Are you sure you want to permanently delete this property? There are no active bookings on it, and it will be completely removed from your account and student search results.'}
+              </p>
+            )}
+
+            {deleteModalError && (
+              <div
+                style={{
+                  backgroundColor: '#FEF2F2',
+                  border: '1px solid #FECACA',
+                  borderRadius: '10px',
+                  padding: '0.75rem 0.9rem',
+                  marginBottom: '1.15rem',
+                  fontSize: '0.84rem',
+                  color: '#B91C1C',
+                  lineHeight: 1.5,
+                }}
+              >
+                ⚠️ {deleteModalError}
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                disabled={Boolean(actionLoadingId)}
+                onClick={() => {
+                  setDeleteModalProperty(null);
+                  setDeleteModalBlockedReason(null);
+                  setDeleteModalError(null);
+                }}
+                style={{
+                  padding: '0.6rem 1.25rem',
+                  borderRadius: '10px',
+                  backgroundColor: '#F1F5F9',
+                  color: '#475569',
+                  border: '1px solid #CBD5E1',
+                  fontWeight: 700,
+                  fontSize: '0.875rem',
+                  cursor: actionLoadingId ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {deleteModalBlockedReason
+                  ? locale === 'ar'
+                    ? 'حسناً، فهمت'
+                    : 'Got it'
+                  : locale === 'ar'
+                  ? 'إلغاء'
+                  : 'Cancel'}
+              </button>
+
+              {deleteModalBlockedReason && deleteModalProperty.isAvailable !== false && (
+                <button
+                  type="button"
+                  disabled={Boolean(actionLoadingId)}
+                  onClick={async () => {
+                    const id = deleteModalProperty.id;
+                    setDeleteModalProperty(null);
+                    setDeleteModalBlockedReason(null);
+                    await handleToggleAvailability(id);
+                  }}
+                  style={{
+                    padding: '0.6rem 1.25rem',
+                    borderRadius: '10px',
+                    backgroundColor: '#0B2A4A',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.85rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {locale === 'ar' ? '🔴 إخفاء العقار مؤقتاً بدل الحذف' : '🔴 Hide Property Temporarily'}
+                </button>
+              )}
+
+              {!deleteModalBlockedReason && (
+                <button
+                  type="button"
+                  disabled={Boolean(actionLoadingId)}
+                  onClick={handleConfirmDeleteProperty}
+                  style={{
+                    padding: '0.6rem 1.35rem',
+                    borderRadius: '10px',
+                    backgroundColor: '#DC2626',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    cursor: actionLoadingId ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 8px rgba(220, 38, 38, 0.3)',
+                  }}
+                >
+                  {actionLoadingId === deleteModalProperty.id
+                    ? locale === 'ar'
+                      ? '⏳ جاري الحذف...'
+                      : '⏳ Deleting...'
+                    : locale === 'ar'
+                    ? '🗑️ نعم، حذف العقار نهائياً'
+                    : '🗑️ Yes, Delete Permanently'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

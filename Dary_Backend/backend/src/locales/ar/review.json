@@ -1,0 +1,18 @@
+{
+  "review": {
+    "missingFields": "يجب إدخال رقم الحجز وتقييم العقار وتقييم المالك",
+    "invalidRatingRange": "التقييم يجب أن يكون بين 1 و 5",
+    "bookingNotClosed": "لا يمكن التقييم إلا بعد اكتمال الحجز",
+    "alreadyExists": "تم تقييم هذا الحجز من قبل",
+    "invalidModerationStatus": "حالة المراجعة غير صحيحة",
+    "notFound": "التقييم غير موجود",
+    "alreadyModerated": "تمت مراجعة هذا التقييم من قبل",
+    "created": "تم إرسال التقييم بنجاح وهو قيد المراجعة",
+    "moderated": "تم تحديث حالة التقييم بنجاح",
+    "propertyListRetrieved": "تم استرجاع تقييمات العقار بنجاح",
+    "ownerListRetrieved": "تم استرجاع تقييمات المالك بنجاح",
+    "myListRetrieved": "تم استرجاع تقييماتك بنجاح",
+    "pendingRetrieved": "تم استرجاع التقييمات قيد المراجعة بنجاح",
+    "listRetrieved": "تم استرجاع التقييمات بنجاح"
+  }
+}
