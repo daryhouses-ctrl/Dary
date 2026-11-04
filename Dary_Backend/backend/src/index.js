@@ -77,6 +77,7 @@ app.use(
         "https://dary-frontend-ykrl.vercel.app",
         "https://dary-19o9.vercel.app",
         "https://dary-19o9-l4rq4871m-dary6.vercel.app",
+        
       ].filter(Boolean);
 
       if (
