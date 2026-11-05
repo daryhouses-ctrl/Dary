@@ -4,6 +4,9 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useLocale } from '../utils/LocaleContext';
 import { AuthService } from '../services/authService';
 import { API_BASE_URL } from '../services/apiClient';
+import PhoneInput from '../components/common/PhoneInput';
+import { parseAndNormalizePhone } from '../utils/phoneUtils';
+import type { CountryCode } from 'libphonenumber-js';
 import logo from '../assets/branding/FINAL-LOGO1.png';
 import './Auth.css';
 
@@ -19,7 +22,9 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
+  const [phoneCountry, setPhoneCountry] = useState<CountryCode>('EG');
   const [whatsappPhone, setWhatsappPhone] = useState('');
+  const [whatsappCountry, setWhatsappCountry] = useState<CountryCode>('EG');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
@@ -79,26 +84,24 @@ export default function RegisterPage() {
           : 'Please enter a valid email address (max 255 chars).';
     }
 
-    const cleanPhone = phone.trim().replace(/\s+/g, '');
-    const phoneRegex = /^\+[1-9]\d{7,14}$/;
-    if (!cleanPhone) {
+    const phoneNorm = parseAndNormalizePhone(phone, phoneCountry);
+    if (!phone.trim()) {
+      errors.phone = locale === 'ar' ? 'رقم الهاتف مطلوب.' : 'Phone number is required.';
+    } else if (!phoneNorm.isValid) {
       errors.phone =
         locale === 'ar'
-          ? 'رقم الهاتف مطلوب بالصيغة الدولية (مثال: +201012345678).'
-          : 'Phone number is required in international format (e.g. +201012345678).';
-    } else if (!phoneRegex.test(cleanPhone)) {
-      errors.phone =
-        locale === 'ar'
-          ? 'صيغة الهاتف غير صحيحة. يجب أن تبدأ برمز الدولة (+).'
-          : 'Invalid phone format. Must start with country code (+).';
+          ? `رقم الهاتف غير صحيح وفقاً لكود الدولة المختارة (+${phoneNorm.callingCode}).`
+          : `Invalid phone number for the selected country (+${phoneNorm.callingCode}).`;
     }
 
-    const cleanWhatsapp = whatsappPhone.trim().replace(/\s+/g, '');
-    if (cleanWhatsapp && !phoneRegex.test(cleanWhatsapp)) {
-      errors.whatsappPhone =
-        locale === 'ar'
-          ? 'صيغة رقم الواتساب غير صحيحة. يجب أن تبدأ برمز الدولة (+).'
-          : 'Invalid WhatsApp format. Must start with country code (+).';
+    if (whatsappPhone.trim()) {
+      const whatsappNorm = parseAndNormalizePhone(whatsappPhone, whatsappCountry);
+      if (!whatsappNorm.isValid) {
+        errors.whatsappPhone =
+          locale === 'ar'
+            ? `رقم الواتساب غير صحيح وفقاً لكود الدولة المختارة (+${whatsappNorm.callingCode}).`
+            : `Invalid WhatsApp number for the selected country (+${whatsappNorm.callingCode}).`;
+      }
     }
 
     if (!password) {
@@ -131,17 +134,22 @@ export default function RegisterPage() {
     setIsLoading(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
-      const cleanPhone = phone.trim().replace(/\s+/g, '');
-      const cleanWhatsapp = whatsappPhone.trim().replace(/\s+/g, '');
+      const phoneNorm = parseAndNormalizePhone(phone, phoneCountry);
+      const whatsappNorm = whatsappPhone.trim()
+        ? parseAndNormalizePhone(whatsappPhone, whatsappCountry)
+        : null;
 
-      // POST /auth/register
+      const normalizedPhone = phoneNorm.e164 || phone.trim();
+      const normalizedWhatsapp = whatsappNorm?.e164 || (whatsappPhone.trim() ? whatsappPhone.trim() : undefined);
+
+      // POST /auth/register with standard E.164 phone numbers
       const res = await AuthService.register({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: cleanEmail || undefined,
         password,
-        phone: cleanPhone,
-        whatsappPhone: cleanWhatsapp || undefined,
+        phone: normalizedPhone,
+        whatsappPhone: normalizedWhatsapp,
         roles: role, // 'tenant' or 'owner' only
       });
 
@@ -152,8 +160,8 @@ export default function RegisterPage() {
       if (!cleanEmail || isAlreadyVerified) {
         navigate('/login', {
           state: {
-            email: cleanEmail || cleanPhone,
-            phone: cleanPhone,
+            email: cleanEmail || normalizedPhone,
+            phone: normalizedPhone,
             message:
               locale === 'ar'
                 ? 'تم إنشاء حسابك بنجاح! يمكنك الآن تسجيل الدخول.'
@@ -425,55 +433,62 @@ export default function RegisterPage() {
               <label htmlFor="reg-phone" className="auth-label">
                 {t.auth_phone_label}
               </label>
-              <div className="auth-input-wrapper">
-                <span className="auth-input-icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" />
-                  </svg>
-                </span>
-                <input
-                  id="reg-phone"
-                  type="tel"
-                  className="auth-input"
-                  placeholder={t.auth_phone_placeholder}
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  autoComplete="tel"
-                  dir="ltr"
-                  required
-                />
-              </div>
-              <span className="auth-field-hint">{t.auth_phone_hint}</span>
-              {fieldErrors.phone && (
-                <span className="auth-field-error">{fieldErrors.phone}</span>
-              )}
+              <PhoneInput
+                id="reg-phone"
+                name="phone"
+                value={phone}
+                onChange={(val, res) => {
+                  setPhone(val);
+                  if (res.country && res.country !== phoneCountry) {
+                    setPhoneCountry(res.country);
+                  }
+                  if (fieldErrors.phone) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.phone;
+                      return next;
+                    });
+                  }
+                }}
+                selectedCountry={phoneCountry}
+                onCountryChange={setPhoneCountry}
+                error={fieldErrors.phone}
+                hint={locale === 'ar' ? 'اختر الدولة واكتب رقمك بصيغته المحلية أو الدولية' : 'Select country and enter your local or international number'}
+                locale={locale}
+                required
+              />
             </div>
 
             {/* WhatsApp Field (Optional) */}
             <div className="auth-field-group">
               <label htmlFor="reg-whatsapp" className="auth-label">
                 {t.auth_whatsapp_label}
-              </label>
-              <div className="auth-input-wrapper">
-                <span className="auth-input-icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-                  </svg>
+                <span style={{ fontWeight: 500, color: '#64748B', marginInlineStart: '0.35rem' }}>
+                  {locale === 'ar' ? '(اختياري)' : '(Optional)'}
                 </span>
-                <input
-                  id="reg-whatsapp"
-                  type="tel"
-                  className="auth-input"
-                  placeholder={t.auth_whatsapp_placeholder}
-                  value={whatsappPhone}
-                  onChange={(e) => setWhatsappPhone(e.target.value)}
-                  autoComplete="tel"
-                  dir="ltr"
-                />
-              </div>
-              {fieldErrors.whatsappPhone && (
-                <span className="auth-field-error">{fieldErrors.whatsappPhone}</span>
-              )}
+              </label>
+              <PhoneInput
+                id="reg-whatsapp"
+                name="whatsappPhone"
+                value={whatsappPhone}
+                onChange={(val, res) => {
+                  setWhatsappPhone(val);
+                  if (res.country && res.country !== whatsappCountry) {
+                    setWhatsappCountry(res.country);
+                  }
+                  if (fieldErrors.whatsappPhone) {
+                    setFieldErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.whatsappPhone;
+                      return next;
+                    });
+                  }
+                }}
+                selectedCountry={whatsappCountry}
+                onCountryChange={setWhatsappCountry}
+                error={fieldErrors.whatsappPhone}
+                locale={locale}
+              />
             </div>
 
             {/* Password & Confirm Password (Side by side on desktop) */}

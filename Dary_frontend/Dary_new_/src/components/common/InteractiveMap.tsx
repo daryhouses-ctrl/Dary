@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
+import './InteractiveMap.css';
 import {
   LocationService,
-  DEFAULT_RADIUS_KM,
   calculateDistanceKm,
   resolveCoordinates,
   isCoordinateValidForContext,
@@ -24,6 +24,10 @@ export interface MapMarkerItem {
   priceText?: string;
   href?: string;
   color?: string;
+  image?: string;
+  bedrooms?: number | string;
+  bathrooms?: number | string;
+  propertyType?: string;
 }
 
 export interface LocationContextInput {
@@ -56,6 +60,10 @@ export interface InteractiveMapProps {
   onProfileSynced?: (lat: number, lng: number, reverseAddress?: ReverseGeocodeResult | null) => void;
   markers?: MapMarkerItem[];
   locale?: 'ar' | 'en';
+  hideRouteControls?: boolean;
+  approximateLocation?: boolean;
+  showCoordinates?: boolean;
+  disableUserLocation?: boolean;
 }
 
 declare global {
@@ -129,11 +137,15 @@ export default function InteractiveMap({
   onLocationChange,
   onAddressResolved,
   showNearby = true,
-  initialRadiusKm = DEFAULT_RADIUS_KM,
+  initialRadiusKm = 1,
   syncProfileOnDetect = false,
   onProfileSynced,
   markers = [],
   locale = 'ar',
+  hideRouteControls = false,
+  approximateLocation = false,
+  showCoordinates = false,
+  disableUserLocation = false,
 }: InteractiveMapProps) {
   const numLat = latitude !== undefined && latitude !== null && latitude !== '' ? Number(latitude) : NaN;
   const numLng = longitude !== undefined && longitude !== null && longitude !== '' ? Number(longitude) : NaN;
@@ -178,9 +190,9 @@ export default function InteractiveMap({
   const [leafletReady, setLeafletReady] = useState(false);
   const [leafletFailed, setLeafletFailed] = useState(false);
 
-  // User GPS & Route Navigation state (only used in non-editable viewer mode)
+  // User GPS & Route Navigation state (strictly disabled when disableUserLocation or hideRouteControls or editable)
   const [userCoords, setUserCoords] = useState<Coordinates | null>(() =>
-    editable ? null : LocationService.getCachedUserLocation()
+    (editable || disableUserLocation || hideRouteControls) ? null : LocationService.getCachedUserLocation()
   );
   const [detectingGps, setDetectingGps] = useState(false);
   const [gpsStatusMsg, setGpsStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -190,11 +202,45 @@ export default function InteractiveMap({
   const [pickOriginMode, setPickOriginMode] = useState<boolean>(false);
   const [showRouteSteps, setShowRouteSteps] = useState<boolean>(true);
 
+  // Clear any residual user coordinates or route states when user location is disabled
+  useEffect(() => {
+    if (disableUserLocation || hideRouteControls) {
+      setUserCoords(null);
+      setRouteData(null);
+      setPickOriginMode(false);
+    }
+  }, [disableUserLocation, hideRouteControls]);
+
   // Nearby state
   const [radiusKm, setRadiusKm] = useState<number>(initialRadiusKm);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [loadingNearby, setLoadingNearby] = useState<boolean>(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+
+  const handleZoomIn = useCallback(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomIn();
+    }
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.zoomOut();
+    }
+  }, []);
+
+  const handleFitAllMarkers = useCallback(() => {
+    if (!mapInstanceRef.current || markers.length === 0) return;
+    const bounds: Array<[number, number]> = markers
+      .filter((m) => Number.isFinite(m.latitude) && Number.isFinite(m.longitude))
+      .map((m) => [m.latitude, m.longitude]);
+    if (bounds.length > 0) {
+      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+    }
+  }, [markers]);
+
+  const selectedMarker = markers.find((m) => m.id === selectedMarkerId);
 
   // Helper to move map camera cleanly without causing jitter/zoom loops
   const moveCameraTo = useCallback(
@@ -545,6 +591,9 @@ export default function InteractiveMap({
   // Trigger Browser Geolocation API + save to backend Profile + either pin property location or draw route
   const handleDetectMyLocation = useCallback(
     async (silent = false, pinAsPropertyLocation?: boolean) => {
+      if (disableUserLocation || hideRouteControls) {
+        return;
+      }
       const shouldPinProperty = pinAsPropertyLocation !== undefined ? pinAsPropertyLocation : editable;
       setDetectingGps(true);
       setPickOriginMode(false);
@@ -624,12 +673,12 @@ export default function InteractiveMap({
         setDetectingGps(false);
       }
     },
-    [syncProfileOnDetect, locale, editable, moveCameraTo, onLocationChange, onAddressResolved, onProfileSynced, safeLat, safeLng]
+    [disableUserLocation, hideRouteControls, syncProfileOnDetect, locale, editable, moveCameraTo, onLocationChange, onAddressResolved, onProfileSynced, safeLat, safeLng]
   );
 
   // Calculate real street-by-street route whenever userCoords or destination or travelMode changes (only in viewer mode)
   useEffect(() => {
-    if (editable || !userCoords || markers.length > 0) {
+    if (disableUserLocation || hideRouteControls || editable || !userCoords || markers.length > 0) {
       setRouteData(null);
       return;
     }
@@ -662,32 +711,48 @@ export default function InteractiveMap({
     return () => {
       cancelled = true;
     };
-  }, [editable, userCoords, safeLat, safeLng, travelMode, markers.length]);
+  }, [disableUserLocation, hideRouteControls, editable, userCoords, safeLat, safeLng, travelMode, markers.length]);
 
   // Auto-detect GPS on mount if requested and no explicit coordinates are saved yet
   useEffect(() => {
+    if (disableUserLocation || hideRouteControls) return;
     if (autoDetectOnMount && !hasExplicitCoords && !autoDetectTriggeredRef.current) {
       autoDetectTriggeredRef.current = true;
       handleDetectMyLocation(true);
     }
-  }, [autoDetectOnMount, hasExplicitCoords, handleDetectMyLocation]);
+  }, [autoDetectOnMount, hasExplicitCoords, handleDetectMyLocation, disableUserLocation, hideRouteControls]);
 
   // Initialize Leaflet Map
   useEffect(() => {
     if (!leafletReady || !mapContainerRef.current || !window.L) return;
     const L = window.L;
 
+    let resizeObserver: ResizeObserver | null = null;
+
     if (!mapInstanceRef.current) {
       const map = L.map(mapContainerRef.current, {
         center: [safeLat, safeLng],
         zoom,
         scrollWheelZoom: true,
+        zoomControl: false,
       });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
+      // CartoDB Voyager tiles: clean, soft real estate colors with high readability
+      const tileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20,
+      });
+
+      tileLayer.on('tileerror', () => {
+        // Fallback to standard OpenStreetMap tiles if CartoDB ever fails
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map);
+      });
+
+      tileLayer.addTo(map);
 
       const layerGroup = L.layerGroup().addTo(map);
       mapInstanceRef.current = map;
@@ -702,9 +767,29 @@ export default function InteractiveMap({
           handleInteractivePick(clickedLat, clickedLng);
         }
       });
+
+      // Invalidate size on initial mount and animation finish
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 250);
+    }
+
+    // Attach ResizeObserver to ensure map tiles never turn grey when container changes size
+    if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      });
+      resizeObserver.observe(mapContainerRef.current);
     }
 
     return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -724,7 +809,7 @@ export default function InteractiveMap({
       const clickedLng = Number(e.latlng.lng.toFixed(6));
       if (editable) {
         handleInteractivePick(clickedLat, clickedLng);
-      } else if (pickOriginMode) {
+      } else if (pickOriginMode && !disableUserLocation && !hideRouteControls) {
         setUserCoords({ latitude: clickedLat, longitude: clickedLng });
         setPickOriginMode(false);
         setShowRouteSteps(true);
@@ -737,7 +822,7 @@ export default function InteractiveMap({
         });
       }
     });
-  }, [editable, pickOriginMode, handleInteractivePick, locale]);
+  }, [editable, pickOriginMode, disableUserLocation, hideRouteControls, handleInteractivePick, locale]);
 
   // Center map camera ONLY when safeLat / safeLng genuinely moves (never on nearbyPlaces or text changes!)
   useEffect(() => {
@@ -764,50 +849,65 @@ export default function InteractiveMap({
       markers.forEach((m) => {
         if (!Number.isFinite(m.latitude) || !Number.isFinite(m.longitude)) return;
         bounds.push([m.latitude, m.longitude]);
-        const pinHtml = `
-          <div style="
-            background: ${m.color || '#2F6BFF'};
-            color: #fff;
-            padding: 4px 10px;
-            border-radius: 999px;
-            font-weight: 800;
-            font-size: 12px;
-            white-space: nowrap;
-            box-shadow: 0 4px 12px rgba(11,42,74,0.35);
-            border: 2px solid #fff;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            font-family: system-ui, sans-serif;
-          ">
-            <span>🏠</span>
-            <span>${m.priceText || m.title}</span>
+
+        const isSelected = m.id === selectedMarkerId;
+        const displayPrice = m.priceText || m.title;
+
+        const pillHtml = `
+          <div class="dary-price-pill ${isSelected ? 'is-selected' : ''}" style="${m.color && !isSelected ? `background-color: ${m.color}; color: #fff;` : ''}">
+            <span>${displayPrice}</span>
           </div>
         `;
         const icon = L.divIcon({
-          html: pinHtml,
-          className: 'dary-custom-map-pin',
-          iconSize: [100, 32],
-          iconAnchor: [50, 16],
+          html: pillHtml,
+          className: 'dary-price-pill-wrapper',
+          iconSize: [110, 34],
+          iconAnchor: [55, 34],
+          popupAnchor: [0, -34],
         });
-        const marker = L.marker([m.latitude, m.longitude], { icon }).addTo(layerGroup);
-        marker.bindPopup(`
-          <div style="font-family: system-ui, sans-serif; direction: ${locale === 'ar' ? 'rtl' : 'ltr'}; text-align: start; min-width: 180px;">
-            <div style="font-weight: 800; color: #0B2A4A; font-size: 14px; margin-bottom: 4px;">${m.title}</div>
-            ${m.subtitle ? `<div style="font-size: 12px; color: #64748B; margin-bottom: 6px;">📍 ${m.subtitle}</div>` : ''}
-            ${m.priceText ? `<div style="font-weight: 800; color: #2F6BFF; font-size: 13px; margin-bottom: 6px;">${m.priceText}</div>` : ''}
-            ${
-              m.href
-                ? `<a href="${m.href}" style="display: inline-block; padding: 4px 10px; background: #0B2A4A; color: #fff; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: 700;">${
-                    locale === 'ar' ? 'عرض التفاصيل ←' : 'View Details →'
-                  }</a>`
-                : ''
-            }
+        const marker = L.marker([m.latitude, m.longitude], {
+          icon,
+          zIndexOffset: isSelected ? 1000 : 0,
+        }).addTo(layerGroup);
+
+        const safeTitle = m.title ? m.title.replace(/"/g, '&quot;') : '';
+        const popupContent = `
+          <div class="dary-popup-card" dir="${locale === 'ar' ? 'rtl' : 'ltr'}">
+            <div class="dary-popup-thumb">
+              ${m.image ? `<img src="${m.image}" alt="${safeTitle}" loading="lazy" />` : `<div class="dary-popup-thumb-placeholder">🏠</div>`}
+              ${m.propertyType ? `<span class="dary-popup-type-badge">${m.propertyType}</span>` : ''}
+            </div>
+            <div class="dary-popup-body">
+              ${m.priceText ? `<div class="dary-popup-price">${m.priceText}</div>` : ''}
+              <div class="dary-popup-title" title="${safeTitle}">${m.title}</div>
+              ${m.subtitle ? `<div class="dary-popup-location"><span>📍</span><span>${m.subtitle}</span></div>` : ''}
+              ${(m.bedrooms || m.bathrooms) ? `
+                <div class="dary-popup-specs">
+                  ${m.bedrooms ? `<span>🛏️ ${m.bedrooms} ${locale === 'ar' ? 'غرف' : 'beds'}</span>` : ''}
+                  ${m.bathrooms ? `<span>🚿 ${m.bathrooms} ${locale === 'ar' ? 'حمام' : 'baths'}</span>` : ''}
+                </div>
+              ` : ''}
+              ${m.href ? `<a href="${m.href}" class="dary-popup-btn">${locale === 'ar' ? 'عرض تفاصيل السكن ←' : 'View Details →'}</a>` : ''}
+            </div>
           </div>
-        `);
+        `;
+
+        marker.bindPopup(popupContent, {
+          maxWidth: 280,
+          minWidth: 240,
+        });
+
+        marker.on('click', () => {
+          setSelectedMarkerId(m.id);
+          map.panTo([m.latitude, m.longitude], { animate: true });
+        });
+
+        marker.on('popupclose', () => {
+          setSelectedMarkerId((prev: any) => (prev === m.id ? null : prev));
+        });
       });
 
-      if (!editable && userCoords) {
+      if (!editable && !disableUserLocation && !hideRouteControls && userCoords) {
         bounds.push([userCoords.latitude, userCoords.longitude]);
       }
 
@@ -818,30 +918,89 @@ export default function InteractiveMap({
       } else if (bounds.length === 1) {
         map.setView(bounds[0], zoom, { animate: false });
       }
+    } else if (approximateLocation) {
+      // 1. Draw 1 km radius circle (1000m) around the approximate location
+      const areaCircle = L.circle([safeLat, safeLng], {
+        radius: 1000,
+        color: '#2F6BFF',
+        weight: 1.8,
+        fillColor: '#2F6BFF',
+        fillOpacity: 0.08,
+        dashArray: '6, 6',
+      }).addTo(layerGroup);
+
+      // Fit map camera cleanly to the 1 km boundary on initial load so it perfectly frames the 1 km area
+      if (!lastCameraCenterRef.current) {
+        try {
+          map.fitBounds(areaCircle.getBounds(), { padding: [22, 22], maxZoom: 15 });
+        } catch {
+          map.setView([safeLat, safeLng], 14, { animate: false });
+        }
+      }
+
+      // 2. Approximate Area Badge Marker
+      const approxPinHtml = `
+        <div class="dary-approx-zone-pin">
+          <span class="dary-approx-pulse"></span>
+          <div class="dary-approx-badge">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+              <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>${locale === 'ar' ? 'المنطقة التقريبية' : 'Approximate Area'}</span>
+          </div>
+        </div>
+      `;
+
+      const approxIcon = L.divIcon({
+        html: approxPinHtml,
+        className: 'dary-approx-marker-wrapper',
+        iconSize: [120, 36],
+        iconAnchor: [60, 18],
+        popupAnchor: [0, -20],
+      });
+
+      const approxMarker = L.marker([safeLat, safeLng], {
+        icon: approxIcon,
+        draggable: false,
+      }).addTo(layerGroup);
+
+      const popupTitle = locale === 'ar' ? 'الموقع التقريبي للسكن' : 'Approximate Property Location';
+      const popupDesc = locale === 'ar'
+        ? 'الموقع معروض بنطاق تقريبي 1 كم لحفظ خصوصية وأمان السكن. يتم إرسال العنوان ورقم العقار بعد تأكيد الحجز.'
+        : 'Approximate 1 km area shown to preserve housing privacy. Exact address is provided after booking confirmation.';
+
+      approxMarker.bindPopup(`
+        <div style="font-family: system-ui, sans-serif; direction: ${locale === 'ar' ? 'rtl' : 'ltr'}; text-align: start; min-width: 210px; padding: 4px;">
+          <div style="font-weight: 800; color: #0B2A4A; font-size: 13.5px; margin-bottom: 4px;">${popupTitle}</div>
+          <div style="font-size: 12px; color: #475569; line-height: 1.45;">${popupDesc}</div>
+        </div>
+      `);
+
+      // Radius Circle around approximate marker for nearby places search if expanded beyond 1 km
+      if (showNearby && radiusKm !== 1) {
+        L.circle([safeLat, safeLng], {
+          radius: radiusKm * 1000,
+          color: '#B69F77',
+          weight: 1.5,
+          fillColor: '#B69F77',
+          fillOpacity: 0.05,
+          dashArray: '6, 6',
+        }).addTo(layerGroup);
+      }
     } else {
       const mainPinHtml = `
-        <div style="
-          width: 40px;
-          height: 40px;
-          border-radius: 50% 50% 50% 0;
-          background: linear-gradient(135deg, #2F6BFF 0%, #0B2A4A 100%);
-          transform: rotate(-45deg);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 6px 16px rgba(11,42,74,0.4);
-          border: 3px solid #FFFFFF;
-        ">
-          <span style="transform: rotate(45deg); font-size: 18px;">🏠</span>
+        <div class="dary-main-marker-pin">
+          <span>🏠</span>
         </div>
       `;
 
       const mainIcon = L.divIcon({
         html: mainPinHtml,
-        className: 'dary-main-marker',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -36],
+        className: 'dary-main-marker-wrapper',
+        iconSize: [44, 44],
+        iconAnchor: [22, 44],
+        popupAnchor: [0, -42],
       });
 
       const mainMarker = L.marker([safeLat, safeLng], {
@@ -938,10 +1097,10 @@ export default function InteractiveMap({
 
     // User Origin / GPS Marker + Street Route Polyline (Viewer mode only)
     const distUserToPin =
-      !editable && userCoords
+      !editable && !disableUserLocation && !hideRouteControls && userCoords
         ? calculateDistanceKm(userCoords.latitude, userCoords.longitude, safeLat, safeLng)
         : 0;
-    if (!editable && userCoords && distUserToPin > 0.03) {
+    if (!editable && !disableUserLocation && !hideRouteControls && userCoords && distUserToPin > 0.03) {
       const userPinHtml = `
         <div style="
           width: 28px;
@@ -1037,10 +1196,14 @@ export default function InteractiveMap({
     markers,
     locale,
     zoom,
+    selectedMarkerId,
+    disableUserLocation,
+    hideRouteControls,
+    approximateLocation,
   ]);
 
   const distanceFromUser =
-    !editable && userCoords && markers.length === 0
+    !editable && !disableUserLocation && !hideRouteControls && userCoords && markers.length === 0
       ? routeData?.distanceKm ?? calculateDistanceKm(userCoords.latitude, userCoords.longitude, safeLat, safeLng)
       : null;
 
@@ -1071,13 +1234,8 @@ export default function InteractiveMap({
 
   return (
     <div
-      style={{
-        backgroundColor: '#FFFFFF',
-        border: '1px solid #E2E8F0',
-        borderRadius: '18px',
-        overflow: 'hidden',
-        boxShadow: '0 4px 18px rgba(11, 42, 74, 0.05)',
-      }}
+      className="dary-map-container"
+      dir={locale === 'ar' ? 'rtl' : 'ltr'}
     >
       {/* Top Action Bar */}
       <div
@@ -1110,8 +1268,13 @@ export default function InteractiveMap({
             🗺️
           </span>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0B2A4A', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <div style={{ fontWeight: 800, fontSize: '0.95rem', color: '#0B2A4A', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span>{title || (locale === 'ar' ? 'الخريطة التفاعلية والموقع الجغرافي' : 'Interactive Map & Location')}</span>
+              {markers.length > 0 && (
+                <span className="dary-map-count-badge">
+                  🏘️ {locale === 'ar' ? `عرض ${markers.length} عقار على الخريطة` : `${markers.length} properties`}
+                </span>
+              )}
               {geocodingBusy && (
                 <span style={{ fontSize: '0.74rem', color: '#2F6BFF', fontWeight: 600 }}>
                   ({locale === 'ar' ? 'جاري فهم العنوان وتحديد الشارع بالظبط...' : 'Resolving exact street address...'})
@@ -1121,130 +1284,141 @@ export default function InteractiveMap({
             <div style={{ fontSize: '0.82rem', color: '#1E293B', fontWeight: 700, marginTop: '2px' }}>
               📍 {displayAddress}
             </div>
-            <div style={{ fontSize: '0.74rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '2px' }}>
-              <span style={{ direction: 'ltr', unicodeBidi: 'embed', fontFamily: 'monospace', backgroundColor: '#E2E8F0', padding: '1px 6px', borderRadius: '4px', color: '#0B2A4A' }}>
-                {safeLat.toFixed(5)}, {safeLng.toFixed(5)}
-              </span>
-              {editable && (
-                <span style={{ color: '#2F6BFF', fontWeight: 600 }}>
-                  • {locale === 'ar' ? 'اضغط في أي مكان على الخريطة أو اسحب الدبوس لتحديد الموقع والعنوان تلقائياً' : 'Click map or drag pin to set location & address'}
-                </span>
-              )}
-            </div>
+            {(showCoordinates || approximateLocation || editable) && (
+              <div style={{ fontSize: '0.74rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '2px' }}>
+                {showCoordinates && (
+                  <span style={{ direction: 'ltr', unicodeBidi: 'embed', fontFamily: 'monospace', backgroundColor: '#E2E8F0', padding: '1px 6px', borderRadius: '4px', color: '#0B2A4A' }}>
+                    {safeLat.toFixed(5)}, {safeLng.toFixed(5)}
+                  </span>
+                )}
+                {approximateLocation && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px', borderRadius: '999px', backgroundColor: '#FEF3C7', color: '#92400E', fontSize: '0.73rem', fontWeight: 700, border: '1px solid #FDE68A' }}>
+                    🛡️ {locale === 'ar' ? 'موقع تقريبي لحفظ خصوصية السكن' : 'Approximate Area (Privacy Protected)'}
+                  </span>
+                )}
+                {editable && (
+                  <span style={{ color: '#2F6BFF', fontWeight: 600 }}>
+                    • {locale === 'ar' ? 'اضغط في أي مكان على الخريطة أو اسحب الدبوس لتحديد الموقع والعنوان تلقائياً' : 'Click map or drag pin to set location & address'}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
-          {distanceFromUser !== null && distanceFromUser > 0.03 && (
-            <span
-              style={{
-                padding: '0.4rem 0.75rem',
-                borderRadius: '999px',
-                backgroundColor: '#ECFDF5',
-                border: '1px solid #A7F3D0',
-                color: '#065F46',
-                fontSize: '0.8rem',
-                fontWeight: 800,
-              }}
-            >
-              📏 {locale === 'ar' ? `يبعد ${distanceFromUser} كم عن موقعك` : `${distanceFromUser} km from you`}
-            </span>
-          )}
+        {!hideRouteControls && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
+            {distanceFromUser !== null && distanceFromUser > 0.03 && (
+              <span
+                style={{
+                  padding: '0.4rem 0.75rem',
+                  borderRadius: '999px',
+                  backgroundColor: '#ECFDF5',
+                  border: '1px solid #A7F3D0',
+                  color: '#065F46',
+                  fontSize: '0.8rem',
+                  fontWeight: 800,
+                }}
+              >
+                📏 {locale === 'ar' ? `يبعد ${distanceFromUser} كم عن موقعك` : `${distanceFromUser} km from you`}
+              </span>
+            )}
 
-          <button
-            type="button"
-            onClick={() => handleDetectMyLocation(false, editable)}
-            disabled={detectingGps}
-            style={{
-              padding: '0.5rem 0.95rem',
-              borderRadius: '10px',
-              backgroundColor: '#2F6BFF',
-              color: '#FFFFFF',
-              border: 'none',
-              fontSize: '0.82rem',
-              fontWeight: 700,
-              cursor: detectingGps ? 'not-allowed' : 'pointer',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              boxShadow: '0 2px 8px rgba(47, 107, 255, 0.25)',
-            }}
-          >
-            <span>🧭</span>
-            <span>
-              {detectingGps
-                ? locale === 'ar'
-                  ? 'جاري جلب الموقع والعنوان من GPS...'
-                  : 'Detecting GPS & Address...'
-                : editable
-                ? locale === 'ar'
-                  ? 'لو أنت في الشقة حالياً: استخدم موقعي (GPS)'
-                  : 'Use My Current GPS Location'
-                : locale === 'ar'
-                ? 'حدد موقعي وارسم الطريق للشقة'
-                : 'My Location & Draw Route'}
-            </span>
-          </button>
-
-          {!editable && markers.length === 0 && (
             <button
               type="button"
-              onClick={() => setPickOriginMode((prev) => !prev)}
+              onClick={() => handleDetectMyLocation(false, editable)}
+              disabled={detectingGps}
               style={{
-                padding: '0.5rem 0.85rem',
+                padding: '0.5rem 0.95rem',
                 borderRadius: '10px',
-                backgroundColor: pickOriginMode ? '#065F46' : '#F0FDF4',
-                color: pickOriginMode ? '#FFFFFF' : '#065F46',
-                border: '1px solid #86EFAC',
+                backgroundColor: '#2F6BFF',
+                color: '#FFFFFF',
+                border: 'none',
+                fontSize: '0.82rem',
+                fontWeight: 700,
+                cursor: detectingGps ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 2px 8px rgba(47, 107, 255, 0.25)',
+              }}
+            >
+              <span>🧭</span>
+              <span>
+                {detectingGps
+                  ? locale === 'ar'
+                    ? 'جاري جلب الموقع والعنوان من GPS...'
+                    : 'Detecting GPS & Address...'
+                  : editable
+                  ? locale === 'ar'
+                    ? 'لو أنت في الشقة حالياً: استخدم موقعي (GPS)'
+                    : 'Use My Current GPS Location'
+                  : locale === 'ar'
+                  ? 'حدد موقعي وارسم الطريق للشقة'
+                  : 'My Location & Draw Route'}
+              </span>
+            </button>
+
+            {!editable && markers.length === 0 && (
+              <button
+                type="button"
+                onClick={() => setPickOriginMode((prev) => !prev)}
+                style={{
+                  padding: '0.5rem 0.85rem',
+                  borderRadius: '10px',
+                  backgroundColor: pickOriginMode ? '#065F46' : '#F0FDF4',
+                  color: pickOriginMode ? '#FFFFFF' : '#065F46',
+                  border: '1px solid #86EFAC',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '5px',
+                }}
+              >
+                <span>👆</span>
+                <span>
+                  {pickOriginMode
+                    ? locale === 'ar'
+                      ? 'اضغط الآن على الخريطة لاختيار مكانك...'
+                      : 'Click anywhere on map now...'
+                    : locale === 'ar'
+                    ? 'حدد مكانك من الخريطة'
+                    : 'Pick My Spot on Map'}
+                </span>
+              </button>
+            )}
+
+            <a
+              href={googleMapsDirectionsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                padding: '0.5rem 0.9rem',
+                borderRadius: '10px',
+                backgroundColor: '#0B2A4A',
+                color: '#FFFFFF',
+                border: '1px solid #0B2A4A',
                 fontSize: '0.8rem',
                 fontWeight: 700,
-                cursor: 'pointer',
+                textDecoration: 'none',
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '5px',
               }}
             >
-              <span>👆</span>
+              <span>🗺️</span>
               <span>
-                {pickOriginMode
-                  ? locale === 'ar'
-                    ? 'اضغط الآن على الخريطة لاختيار مكانك...'
-                    : 'Click anywhere on map now...'
-                  : locale === 'ar'
-                  ? 'حدد مكانك من الخريطة'
-                  : 'Pick My Spot on Map'}
+                {locale === 'ar'
+                  ? !editable && userCoords
+                    ? 'ابدأ التحرك على خرائط جوجل ↗'
+                    : 'عرض على خرائط جوجل ↗'
+                  : 'Google Maps Directions ↗'}
               </span>
-            </button>
-          )}
-
-          <a
-            href={googleMapsDirectionsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              padding: '0.5rem 0.9rem',
-              borderRadius: '10px',
-              backgroundColor: '#0B2A4A',
-              color: '#FFFFFF',
-              border: '1px solid #0B2A4A',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '5px',
-            }}
-          >
-            <span>🗺️</span>
-            <span>
-              {locale === 'ar'
-                ? !editable && userCoords
-                  ? 'ابدأ التحرك على خرائط جوجل ↗'
-                  : 'عرض على خرائط جوجل ↗'
-                : 'Google Maps Directions ↗'}
-            </span>
-          </a>
-        </div>
+            </a>
+          </div>
+        )}
       </div>
 
       {/* Editable Map Search & Address Sync Bar */}
@@ -1524,13 +1698,21 @@ export default function InteractiveMap({
 
       {/* Map Viewport */}
       <div
+        className="dary-map-viewport"
         style={{
           position: 'relative',
           width: '100%',
-          height,
           cursor: pickOriginMode || editable ? 'crosshair' : 'grab',
+          ...(height ? { height } : {}),
         }}
       >
+        {!leafletReady && (
+          <div className="dary-map-skeleton-overlay">
+            <div className="dary-map-spinner" style={{ width: 34, height: 34, borderWidth: 3 }} />
+            <span>{locale === 'ar' ? 'جاري تحميل الخريطة التفاعلية...' : 'Loading interactive map...'}</span>
+          </div>
+        )}
+
         {!leafletFailed ? (
           <div
             ref={mapContainerRef}
@@ -1544,10 +1726,99 @@ export default function InteractiveMap({
             loading="lazy"
           />
         )}
+
+        {/* Floating Touch-Friendly Map Controls Cluster */}
+        <div className="dary-map-floating-controls">
+          {/* Quick GPS Position Button */}
+          {!hideRouteControls && (
+            <button
+              type="button"
+              className={`dary-map-control-btn ${detectingGps ? 'is-loading' : ''}`}
+              onClick={() => handleDetectMyLocation(false, editable)}
+              disabled={detectingGps}
+              title={locale === 'ar' ? 'تحديد موقعي الحالي (GPS)' : 'Locate My Position (GPS)'}
+              aria-label={locale === 'ar' ? 'تحديد موقعي' : 'Locate me'}
+            >
+              {detectingGps ? <div className="dary-map-spinner" /> : '🧭'}
+            </button>
+          )}
+
+          {/* Fit all markers button (visible when multiple properties are on map) */}
+          {markers.length > 1 && (
+            <button
+              type="button"
+              className="dary-map-control-btn"
+              onClick={handleFitAllMarkers}
+              title={locale === 'ar' ? 'إعادة ضبط الخريطة لعرض جميع العقارات' : 'Fit all properties in view'}
+              aria-label={locale === 'ar' ? 'عرض جميع العقارات' : 'Fit all properties'}
+            >
+              🎯
+            </button>
+          )}
+
+          {/* Touch-Friendly Zoom Cluster (min 44px touch targets) */}
+          <div className="dary-map-zoom-cluster">
+            <button
+              type="button"
+              className="dary-map-zoom-btn"
+              onClick={handleZoomIn}
+              title={locale === 'ar' ? 'تكبير' : 'Zoom In'}
+              aria-label={locale === 'ar' ? 'تكبير' : 'Zoom In'}
+            >
+              +
+            </button>
+            <button
+              type="button"
+              className="dary-map-zoom-btn"
+              onClick={handleZoomOut}
+              title={locale === 'ar' ? 'تصغير' : 'Zoom Out'}
+              aria-label={locale === 'ar' ? 'تصغير' : 'Zoom Out'}
+            >
+              −
+            </button>
+          </div>
+        </div>
+
+        {/* Selected Property Preview Bottom Card */}
+        {selectedMarker && (
+          <div className="dary-map-selected-card" dir={locale === 'ar' ? 'rtl' : 'ltr'}>
+            <div className="dary-map-selected-thumb">
+              {selectedMarker.image ? (
+                <img src={selectedMarker.image} alt={selectedMarker.title} />
+              ) : (
+                <div className="dary-popup-thumb-placeholder" style={{ fontSize: '1.6rem' }}>🏠</div>
+              )}
+            </div>
+            <div className="dary-map-selected-info">
+              {selectedMarker.priceText && (
+                <div className="dary-map-selected-price">{selectedMarker.priceText}</div>
+              )}
+              <div className="dary-map-selected-title" title={selectedMarker.title}>{selectedMarker.title}</div>
+              {selectedMarker.subtitle && (
+                <div className="dary-map-selected-loc">📍 {selectedMarker.subtitle}</div>
+              )}
+            </div>
+            <div className="dary-map-selected-actions">
+              <button
+                type="button"
+                className="dary-map-selected-close"
+                onClick={() => setSelectedMarkerId(null)}
+                title={locale === 'ar' ? 'إغلاق' : 'Close'}
+              >
+                ✕
+              </button>
+              {selectedMarker.href && (
+                <a href={selectedMarker.href} className="dary-map-selected-btn">
+                  {locale === 'ar' ? 'عرض التفاصيل ←' : 'View →'}
+                </a>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Turn-by-Turn Route & Navigation Panel ("امشي ازاي") */}
-      {!editable && markers.length === 0 && userCoords && calculateDistanceKm(userCoords.latitude, userCoords.longitude, safeLat, safeLng) > 0.03 && (routeData || routeLoading) && (
+      {!hideRouteControls && !editable && markers.length === 0 && userCoords && calculateDistanceKm(userCoords.latitude, userCoords.longitude, safeLat, safeLng) > 0.03 && (routeData || routeLoading) && (
         <div
           style={{
             padding: '1.1rem 1.25rem',
@@ -1832,8 +2103,8 @@ export default function InteractiveMap({
             </div>
 
             {/* Radius Filter Selector */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 600 }}>
+            <div className="dary-map-radius-selector">
+              <span style={{ fontSize: '0.78rem', color: '#64748B', fontWeight: 700 }}>
                 {locale === 'ar' ? 'نطاق البحث:' : 'Radius:'}
               </span>
               {[1, 3, 5].map((r) => (
@@ -1841,16 +2112,7 @@ export default function InteractiveMap({
                   key={r}
                   type="button"
                   onClick={() => setRadiusKm(r)}
-                  style={{
-                    padding: '0.3rem 0.65rem',
-                    borderRadius: '8px',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    border: radiusKm === r ? '1px solid #2F6BFF' : '1px solid #CBD5E1',
-                    backgroundColor: radiusKm === r ? '#EFF6FF' : '#F8FAFC',
-                    color: radiusKm === r ? '#2F6BFF' : '#475569',
-                  }}
+                  className={`dary-map-radius-chip ${radiusKm === r ? 'is-active' : ''}`}
                 >
                   {r} {locale === 'ar' ? 'كم' : 'km'}
                 </button>
@@ -1938,22 +2200,30 @@ export default function InteractiveMap({
                     type="button"
                     onClick={() => {
                       if (!editable) {
-                        setUserCoords({ latitude: place.latitude, longitude: place.longitude });
-                        setShowRouteSteps(true);
-                        setGpsStatusMsg({
-                          type: 'success',
-                          text:
-                            locale === 'ar'
-                              ? `✓ تم رسم خط السير على الخريطة من «${place.name}» إلى السكن!`
-                              : `✓ Route drawn from "${place.nameEn || place.name}" to the property!`,
-                        });
+                        if (!hideRouteControls) {
+                          setUserCoords({ latitude: place.latitude, longitude: place.longitude });
+                          setShowRouteSteps(true);
+                          setGpsStatusMsg({
+                            type: 'success',
+                            text:
+                              locale === 'ar'
+                                ? `✓ تم رسم خط السير على الخريطة من «${place.name}» إلى السكن!`
+                                : `✓ Route drawn from "${place.nameEn || place.name}" to the property!`,
+                          });
+                        } else if (mapInstanceRef.current) {
+                          mapInstanceRef.current.setView([place.latitude, place.longitude], 16, { animate: true });
+                        }
                       } else if (mapInstanceRef.current) {
                         mapInstanceRef.current.setView([place.latitude, place.longitude], 17);
                       }
                     }}
                     title={
                       locale === 'ar'
-                        ? `اضغط لرسم خط السير من «${place.name}» إلى السكن`
+                        ? hideRouteControls
+                          ? `اضغط لعرض «${place.name}» على الخريطة`
+                          : `اضغط لرسم خط السير من «${place.name}» إلى السكن`
+                        : hideRouteControls
+                        ? `Click to view "${place.nameEn || place.name}" on map`
                         : `Click to draw route from "${place.nameEn || place.name}" to property`
                     }
                     style={{

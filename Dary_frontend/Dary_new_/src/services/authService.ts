@@ -1,4 +1,5 @@
 import { ApiClient } from './apiClient';
+import { parseAndNormalizePhone } from '../utils/phoneUtils';
 
 export interface UserRole {
   role?: {
@@ -96,8 +97,13 @@ export class AuthService {
       ? rawIdentifier.replace(/\s+/g, '')
       : credentials.phone?.trim().replace(/\s+/g, '');
 
-    if (cleanPhone && /^01[0125]\d{8}$/.test(cleanPhone)) {
-      cleanPhone = `+2${cleanPhone}`;
+    if (cleanPhone) {
+      const parsed = parseAndNormalizePhone(cleanPhone, 'EG');
+      if (parsed.isValid && parsed.e164) {
+        cleanPhone = parsed.e164;
+      } else if (/^01[0125]\d{8}$/.test(cleanPhone)) {
+        cleanPhone = `+2${cleanPhone}`;
+      }
     }
 
     // Format phone into a standard valid email format for `email` field so strict backend

@@ -62,12 +62,16 @@ export const getProperties = asyncHandler(async (req, res) => {
 // @route  GET /properties/:id
 // @access Public
 export const getPropertyById = asyncHandler(async (req, res) => {
+  const userRoles = Array.isArray(req.user?.roles)
+    ? req.user.roles.map((r) => String(r).toLowerCase())
+    : req.user?.role
+    ? [String(req.user.role).toLowerCase()]
+    : [];
+  const isAdmin = userRoles.some((r) => ["admin", "super_admin"].includes(r));
   const viewer = req.user
     ? {
         id: req.user.id,
-        isAdmin:
-          Array.isArray(req.user.roles) &&
-          req.user.roles.some((r) => ["admin", "super_admin"].includes(r)),
+        isAdmin,
       }
     : null;
 

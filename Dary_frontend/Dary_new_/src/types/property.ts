@@ -43,6 +43,7 @@ export interface Property {
   address?: string;
   latitude?: number;
   longitude?: number;
+  isApproximateLocation?: boolean;
   nearestUniversity?: string;
   distanceToUniversity?: number;
   isFurnished?: boolean;

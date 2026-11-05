@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useLocale } from '../utils/LocaleContext';
-import { propertyService, getCachedProperty, normalizeProperty, cacheProperty } from '../services/propertyService';
+import { propertyService, getCachedProperty, normalizeProperty } from '../services/propertyService';
 import { TenantService } from '../services/tenantService';
 import type { RentalBooking } from '../services/tenantService';
 import { ReportService } from '../services/reportService';
@@ -15,7 +15,6 @@ import './PropertyDetailsPage.css';
 import {
   formatCleanAddress,
   normalizeUniversityName,
-  LocationService,
   type ReverseGeocodeResult,
 } from '../services/locationService';
 
@@ -511,8 +510,6 @@ export default function PropertyDetailsPage() {
   const [error, setError] = useState<string | null>(null);
   const [resolvedMapAddress, setResolvedMapAddress] = useState<string>('');
   const [resolvedRev, setResolvedRev] = useState<ReverseGeocodeResult | null>(null);
-  const [mapEditMode, setMapEditMode] = useState<boolean>(false);
-  const [detectingBoxGps, setDetectingBoxGps] = useState<boolean>(false);
 
   const propertyRef = useRef<Property | null>(property);
   propertyRef.current = property;
@@ -1399,7 +1396,10 @@ export default function PropertyDetailsPage() {
                   border: '1px solid rgba(255,255,255,0.15)',
                 }}
               >
-                <span>📷</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                  <circle cx="12" cy="13" r="4"/>
+                </svg>
                 <span>{activeImageIndex + 1} / {allImages.length}</span>
               </span>
 
@@ -1447,7 +1447,7 @@ export default function PropertyDetailsPage() {
                     : (locale === 'ar' ? 'إظهار الصورة كاملة بدون قص' : 'Fit full uncropped image')
                 }
                 style={{
-                  height: '42px',
+                  minHeight: '44px',
                   padding: '0 0.85rem',
                   borderRadius: '999px',
                   background: 'rgba(255, 255, 255, 0.92)',
@@ -1477,8 +1477,10 @@ export default function PropertyDetailsPage() {
                 }}
                 title={locale === 'ar' ? 'عرض الصور بحجم كامل' : 'View Fullscreen'}
                 style={{
-                  width: '42px',
-                  height: '42px',
+                  width: '44px',
+                  height: '44px',
+                  minWidth: '44px',
+                  minHeight: '44px',
                   borderRadius: '50%',
                   background: 'rgba(255, 255, 255, 0.92)',
                   backdropFilter: 'blur(8px)',
@@ -1487,12 +1489,17 @@ export default function PropertyDetailsPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   cursor: 'pointer',
-                  fontSize: '1.15rem',
+                  color: 'var(--color-navy)',
                   boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
                   transition: 'transform 0.15s ease',
                 }}
               >
-                🔍
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                  <line x1="11" y1="8" x2="11" y2="14"/>
+                  <line x1="8" y1="11" x2="14" y2="11"/>
+                </svg>
               </button>
 
               {/* Favorite Button */}
@@ -1506,8 +1513,10 @@ export default function PropertyDetailsPage() {
                   disabled={favLoading}
                   aria-label={isFavorite ? (locale === 'ar' ? 'إزالة من المفضلة' : 'Remove from favorites') : (locale === 'ar' ? 'إضافة للمفضلة' : 'Add to favorites')}
                   style={{
-                    width: '42px',
-                    height: '42px',
+                    width: '44px',
+                    height: '44px',
+                    minWidth: '44px',
+                    minHeight: '44px',
                     borderRadius: '50%',
                     background: 'rgba(255, 255, 255, 0.92)',
                     backdropFilter: 'blur(8px)',
@@ -1516,12 +1525,13 @@ export default function PropertyDetailsPage() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    fontSize: '1.25rem',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.2)',
                     opacity: favLoading ? 0.6 : 1,
                   }}
                 >
-                  {isFavorite ? '❤️' : '🤍'}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill={isFavorite ? '#EF4444' : 'none'} stroke={isFavorite ? '#EF4444' : '#0B2A4A'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
                 </button>
               )}
             </div>
@@ -1702,7 +1712,7 @@ export default function PropertyDetailsPage() {
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.4rem', fontSize: '0.78rem', color: 'var(--color-text-muted)' }}>
-                <span>💡 {locale === 'ar' ? 'يمكنك التمرير أو استخدام أسهم لوحة المفاتيح ↔️ للتنقل بين الصور' : 'Swipe, click thumbnails, or use arrow keys ↔️ to browse photos'}</span>
+                <span>{locale === 'ar' ? 'يمكنك التمرير أو استخدام أسهم لوحة المفاتيح للتنقل بين الصور' : 'Swipe, click thumbnails, or use arrow keys to browse photos'}</span>
                 <span>{allImages.length} {locale === 'ar' ? 'صور متوفرة' : 'photos available'}</span>
               </div>
             </div>
@@ -1732,7 +1742,7 @@ export default function PropertyDetailsPage() {
                     {property.status === 'APPROVED'
                       ? (locale === 'ar' ? '✓ معتمد وموثق من داري' : '✓ Verified Listing')
                       : property.status === 'PENDING'
-                      ? (locale === 'ar' ? '⏳ قيد مراجعة الإدارة' : 'Pending Review')
+                      ? (locale === 'ar' ? 'قيد مراجعة الإدارة' : 'Pending Review')
                       : property.status}
                   </span>
                 )}
@@ -1751,8 +1761,8 @@ export default function PropertyDetailsPage() {
                   }}
                 >
                   {property.propertyClass === 'LUXURY'
-                    ? (locale === 'ar' ? '⭐ فئة فاخرة (Luxury)' : '⭐ Luxury Class')
-                    : (locale === 'ar' ? '🏷️ فئة اقتصادية قياسية' : 'Standard Class')}
+                    ? (locale === 'ar' ? 'فئة فاخرة (Luxury)' : 'Luxury Class')
+                    : (locale === 'ar' ? 'فئة اقتصادية قياسية' : 'Standard Class')}
                 </span>
 
                 <span
@@ -1769,10 +1779,10 @@ export default function PropertyDetailsPage() {
                   }}
                 >
                   {property.genderAllowed === 'female_only'
-                    ? (locale === 'ar' ? '👩‍🎓 سكن طالبات (إناث فقط)' : 'Female Only 👩‍🎓')
+                    ? (locale === 'ar' ? 'سكن طالبات (إناث فقط)' : 'Female Only')
                     : property.genderAllowed === 'male_only'
-                    ? (locale === 'ar' ? '👨‍🎓 سكن طلاب (شباب فقط)' : 'Male Only 👨‍🎓')
-                    : (locale === 'ar' ? '👥 متاح للجميع' : 'Open to All 👥')}
+                    ? (locale === 'ar' ? 'سكن طلاب (شباب فقط)' : 'Male Only')
+                    : (locale === 'ar' ? 'متاح للجميع' : 'Open to All')}
                 </span>
 
                 {property.targetTenantType === 'STUDENT' && (
@@ -1789,7 +1799,7 @@ export default function PropertyDetailsPage() {
                       color: 'var(--color-blue)',
                     }}
                   >
-                    📚 {locale === 'ar' ? 'مخصص للطلاب والدارسين' : 'Students Only'}
+                    {locale === 'ar' ? 'مخصص للطلاب والدارسين' : 'Students Only'}
                   </span>
                 )}
 
@@ -1810,8 +1820,8 @@ export default function PropertyDetailsPage() {
                 >
                   {isFullyBooked
                     ? (locale === 'ar'
-                        ? (earliestVacancyDate ? `🔒 ممتلئ بالكامل (سيفضى في ${formatOccupancyDate(earliestVacancyDate, locale)})` : '🔒 ممتلئ بالكامل حالياً')
-                        : (earliestVacancyDate ? `🔒 Fully Booked (Vacant ${formatOccupancyDate(earliestVacancyDate, locale)})` : '🔒 Fully Booked'))
+                        ? (earliestVacancyDate ? `ممتلئ بالكامل (سيفضى في ${formatOccupancyDate(earliestVacancyDate, locale)})` : 'ممتلئ بالكامل حالياً')
+                        : (earliestVacancyDate ? `Fully Booked (Vacant ${formatOccupancyDate(earliestVacancyDate, locale)})` : 'Fully Booked'))
                     : (locale === 'ar' ? '✓ تتوفر أسرّة شاغرة للحجز الفوري' : '✓ Vacant Beds Available Now')}
                 </span>
               </div>
@@ -1827,6 +1837,50 @@ export default function PropertyDetailsPage() {
                 </svg>
                 <span>{displayLocation}</span>
               </p>
+            </div>
+
+            {/* ── Mobile Prominent Price & Booking Card (< 992px) ─────────────── */}
+            <div className="property-mobile-booking-card">
+              <div className="property-mobile-price-row">
+                <div>
+                  <div className="property-mobile-price-label">
+                    {locale === 'ar' ? 'السعر الشهري' : 'Monthly Price'}
+                  </div>
+                  <div className="property-mobile-price-value">
+                    {Number(property.price || 0).toLocaleString()} <span className="property-mobile-price-cur">{property.currency} / {locale === 'ar' ? 'شهرياً' : 'mo'}</span>
+                  </div>
+                </div>
+                {property.deposit !== undefined && property.deposit > 0 && (
+                  <div className="property-mobile-deposit-pill">
+                    {locale === 'ar' ? `تأمين مسترد: ${Number(property.deposit).toLocaleString()} ${property.currency}` : `Deposit: ${Number(property.deposit).toLocaleString()} ${property.currency}`}
+                  </div>
+                )}
+              </div>
+
+              {isFullyBooked ? (
+                <div className="property-mobile-booked-banner">
+                  <div style={{ fontWeight: 800 }}>{locale === 'ar' ? 'السكن ممتلئ بالكامل حالياً' : 'Property Currently Fully Booked'}</div>
+                  {earliestVacancyDate && (
+                    <div style={{ fontSize: '0.8rem', marginTop: '4px' }}>
+                      {locale === 'ar' ? `أقرب موعد للشغور: ${formatOccupancyDate(earliestVacancyDate, locale)}` : `Next vacancy: ${formatOccupancyDate(earliestVacancyDate, locale)}`}
+                    </div>
+                  )}
+                </div>
+              ) : !isAdmin && !(isOwner && isThisOwnerProperty) ? (
+                <button
+                  type="button"
+                  onClick={handleOpenBookingModal}
+                  className="property-mobile-book-btn"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="16" y1="2" x2="16" y2="6"/>
+                    <line x1="8" y1="2" x2="8" y2="6"/>
+                    <line x1="3" y1="10" x2="21" y2="10"/>
+                  </svg>
+                  <span>{locale === 'ar' ? 'طلب حجز سكن' : 'Request to Book'}</span>
+                </button>
+              ) : null}
             </div>
 
             {/* Detailed Location & Proximity Box */}
@@ -1865,53 +1919,6 @@ export default function PropertyDetailsPage() {
 
               if (!effectiveAddress && !effectiveUnivName) return null;
 
-              const handleQuickGpsFill = async () => {
-                setDetectingBoxGps(true);
-                try {
-                  const coords = await LocationService.detectAndSyncProfileLocation(isAuthenticated);
-                  const rev = await LocationService.reverseGeocode(coords.latitude, coords.longitude, locale);
-                  if (rev) {
-                    setResolvedRev(rev);
-                    if (rev.address) setResolvedMapAddress(rev.address);
-                  }
-                  setProperty((prev) => {
-                    if (!prev) return prev;
-                    const updated: Property = {
-                      ...prev,
-                      latitude: coords.latitude,
-                      longitude: coords.longitude,
-                      address: rev?.address || prev.address,
-                      district: rev?.district || prev.district,
-                      city: rev?.city || prev.city,
-                      governorate: rev?.governorate || prev.governorate,
-                      nearestUniversity: rev?.nearestUniversity || prev.nearestUniversity,
-                      distanceToUniversity: rev?.distanceToUniversityKm ?? prev.distanceToUniversity,
-                    };
-                    cacheProperty(updated);
-                    return updated;
-                  });
-                  if ((isThisOwnerProperty || isAdmin) && property.id) {
-                    propertyService
-                      .updateProperty(property.id, {
-                        latitude: coords.latitude,
-                        longitude: coords.longitude,
-                        ...(rev?.address ? { address: rev.address } : {}),
-                        ...(rev?.district ? { district: rev.district } : {}),
-                        ...(rev?.governorate ? { governorate: rev.governorate } : {}),
-                        ...(rev?.nearestUniversity ? { nearestUniversity: rev.nearestUniversity } : {}),
-                        ...(rev?.distanceToUniversityKm !== undefined
-                          ? { distanceToUniversity: rev.distanceToUniversityKm }
-                          : {}),
-                      })
-                      .catch(() => {});
-                  }
-                } catch {
-                  setMapEditMode(true);
-                } finally {
-                  setDetectingBoxGps(false);
-                }
-              };
-
               return (
                 <div
                   style={{
@@ -1925,82 +1932,56 @@ export default function PropertyDetailsPage() {
                     gap: '0.65rem',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.92rem', color: 'var(--color-navy)', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '1.1rem' }}>📍</span>
-                      <span style={{ fontWeight: 800 }}>{locale === 'ar' ? 'العنوان التفصيلي:' : 'Detailed Address:'}</span>
-                      <span style={{ color: '#0F172A', fontWeight: 700 }}>
-                        {effectiveAddress}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.92rem', color: 'var(--color-navy)', flexWrap: 'wrap' }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-blue)', flexShrink: 0 }}>
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span style={{ fontWeight: 800 }}>
+                      {(isThisOwnerProperty || isAdmin)
+                        ? (locale === 'ar' ? 'العنوان المسجل (خاص بالإدارة والمالك):' : 'Registered Address (Owner/Admin):')
+                        : (locale === 'ar' ? 'الموقع العام والمنطقة:' : 'General Location & District:')}
+                    </span>
+                    <span style={{ color: '#0F172A', fontWeight: 700 }}>
+                      {(isThisOwnerProperty || isAdmin)
+                        ? effectiveAddress
+                        : ([property.district, property.city].filter(Boolean).join(', ') || property.address || displayLocation)}
+                    </span>
+                  </div>
+
+                  {!isThisOwnerProperty && !isAdmin && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        padding: '0.55rem 0.85rem',
+                        borderRadius: '10px',
+                        backgroundColor: '#FEF3C7',
+                        border: '1px solid #FDE68A',
+                        color: '#92400E',
+                        fontSize: '0.78rem',
+                        fontWeight: 600,
+                        lineHeight: 1.45,
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#B45309' }}>
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                      </svg>
+                      <span>
+                        {locale === 'ar'
+                          ? 'يُعرض موقع العقار بنطاق تقريبي (نصف قطر 1 كم) لحفظ خصوصية وأمان السكن. يتم تزويدك بالعنوان الدقيق ورقم المبنى فور تأكيد الحجز.'
+                          : 'Property location is displayed within an approximate 1 km radius to protect housing privacy. The exact building address is provided upon booking confirmation.'}
                       </span>
                     </div>
-
-                    {(isThisOwnerProperty || isAdmin) && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexWrap: 'wrap' }}>
-                        <button
-                          type="button"
-                          onClick={handleQuickGpsFill}
-                          disabled={detectingBoxGps}
-                          style={{
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '8px',
-                            border: '1px solid #2F6BFF',
-                            backgroundColor: '#2F6BFF',
-                            color: '#FFFFFF',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: detectingBoxGps ? 'not-allowed' : 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <span>🧭</span>
-                          <span>
-                            {detectingBoxGps
-                              ? locale === 'ar'
-                                ? 'جاري جلب العنوان من GPS...'
-                                : 'Detecting GPS Address...'
-                              : locale === 'ar'
-                              ? 'حط عنواني الحالي (GPS)'
-                              : 'Use My GPS Address'}
-                          </span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setMapEditMode((prev) => !prev)}
-                          style={{
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '8px',
-                            border: mapEditMode ? '1px solid #16A34A' : '1px solid #BFDBFE',
-                            backgroundColor: mapEditMode ? '#DCFCE7' : '#EFF6FF',
-                            color: mapEditMode ? '#15803D' : '#1D4ED8',
-                            fontSize: '0.78rem',
-                            fontWeight: 700,
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <span>{mapEditMode ? '✓' : '🎯'}</span>
-                          <span>
-                            {mapEditMode
-                              ? locale === 'ar'
-                                ? 'تم تفعيل ضبط الخريطة (اضغط على الخريطة لتعديل الموقع)'
-                                : 'Map Pin Mode Active'
-                              : locale === 'ar'
-                              ? 'ضبط العنوان على الخريطة'
-                              : 'Adjust on Map'}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                  )}
 
                   {effectiveUnivName && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.9rem', color: '#1E40AF', flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: '1.1rem' }}>🎓</span>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                      </svg>
                       <span style={{ fontWeight: 700 }}>{locale === 'ar' ? 'الجامعة الأقرب:' : 'Nearest University:'}</span>
                       <span style={{ fontWeight: 800, color: '#0B2A4A' }}>{effectiveUnivName}</span>
                       {effectiveUnivDist !== undefined && (
@@ -2021,7 +2002,7 @@ export default function PropertyDetailsPage() {
                 longitude={property.longitude}
                 locationContext={{
                   id: property.id,
-                  address: property.address,
+                  address: (isThisOwnerProperty || isAdmin) ? property.address : undefined,
                   district: property.district,
                   city: property.city,
                   governorate: property.governorate,
@@ -2030,53 +2011,21 @@ export default function PropertyDetailsPage() {
                   title: property.title,
                 }}
                 title={displayTitle}
-                subtitle={resolvedMapAddress || displayLocation}
+                subtitle={(isThisOwnerProperty || isAdmin) ? (resolvedMapAddress || displayLocation) : ([property.district, property.city].filter(Boolean).join(', ') || displayLocation)}
                 height="360px"
-                editable={mapEditMode || isThisOwnerProperty || isAdmin}
+                editable={false}
                 showNearby={true}
-                syncProfileOnDetect={isAuthenticated}
+                initialRadiusKm={1}
+                hideRouteControls={true}
+                disableUserLocation={true}
+                approximateLocation={true}
+                showCoordinates={false}
+                autoDetectOnMount={false}
+                syncProfileOnDetect={false}
                 locale={locale}
                 onAddressResolved={(cleanAddr, rev) => {
                   if (cleanAddr) setResolvedMapAddress(cleanAddr);
                   if (rev) setResolvedRev(rev);
-                }}
-                onLocationChange={(lat, lng, rev) => {
-                  const newAddress = rev?.address || resolvedMapAddress || property.address;
-                  if (rev) setResolvedRev(rev);
-                  setProperty((prev) => {
-                    if (!prev) return prev;
-                    const updated: Property = {
-                      ...prev,
-                      latitude: lat,
-                      longitude: lng,
-                      address: newAddress || prev.address,
-                      district: rev?.district || prev.district,
-                      city: rev?.city || prev.city,
-                      governorate: rev?.governorate || prev.governorate,
-                      nearestUniversity: rev?.nearestUniversity || prev.nearestUniversity,
-                      distanceToUniversity: rev?.distanceToUniversityKm ?? prev.distanceToUniversity,
-                    };
-                    cacheProperty(updated);
-                    return updated;
-                  });
-                  if (rev?.address) {
-                    setResolvedMapAddress(rev.address);
-                  }
-                  if ((isThisOwnerProperty || isAdmin) && property.id) {
-                    propertyService
-                      .updateProperty(property.id, {
-                        latitude: lat,
-                        longitude: lng,
-                        ...(rev?.address ? { address: rev.address } : {}),
-                        ...(rev?.district ? { district: rev.district } : {}),
-                        ...(rev?.governorate ? { governorate: rev.governorate } : {}),
-                        ...(rev?.nearestUniversity ? { nearestUniversity: rev.nearestUniversity } : {}),
-                        ...(rev?.distanceToUniversityKm !== undefined
-                          ? { distanceToUniversity: rev.distanceToUniversityKm }
-                          : {}),
-                      })
-                      .catch(() => {});
-                  }
                 }}
               />
             </div>
@@ -2084,7 +2033,7 @@ export default function PropertyDetailsPage() {
             {/* ── Key Specifications Grid (6 Tiles) ─────────────────────────── */}
             <div style={{ marginBottom: '1.75rem' }}>
               <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.9rem' }}>
-                {locale === 'ar' ? '📊 مواصفات وبيانات السكن' : '📊 Property Specifications'}
+                {locale === 'ar' ? 'مواصفات وبيانات السكن' : 'Property Specifications'}
               </h3>
               <div className="property-specs-grid">
                 <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
@@ -2092,7 +2041,7 @@ export default function PropertyDetailsPage() {
                     {locale === 'ar' ? 'نوع العقار' : 'Property Type'}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    🏠 {displayType}
+                    {displayType}
                   </div>
                 </div>
 
@@ -2101,7 +2050,7 @@ export default function PropertyDetailsPage() {
                     {locale === 'ar' ? 'حالة الفرش' : 'Furnishing'}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    🛋️ {property.isFurnished ? (locale === 'ar' ? 'مفروش بالكامل' : 'Fully Furnished') : (locale === 'ar' ? 'غير مفروش' : 'Unfurnished')}
+                    {property.isFurnished ? (locale === 'ar' ? 'مفروش بالكامل' : 'Fully Furnished') : (locale === 'ar' ? 'غير مفروش' : 'Unfurnished')}
                   </div>
                 </div>
 
@@ -2110,7 +2059,7 @@ export default function PropertyDetailsPage() {
                     {locale === 'ar' ? 'عدد الغرف' : 'Bedrooms'}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    🛏️ {property.rooms_?.length || property.bedrooms} {locale === 'ar' ? 'غرف' : 'Rooms'}
+                    {property.rooms_?.length || property.bedrooms} {locale === 'ar' ? 'غرف' : 'Rooms'}
                   </div>
                 </div>
 
@@ -2119,7 +2068,7 @@ export default function PropertyDetailsPage() {
                     {locale === 'ar' ? 'دورات المياه' : 'Bathrooms'}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    🚿 {property.bathrooms || 1} {locale === 'ar' ? 'حمامات' : 'Baths'}
+                    {property.bathrooms || 1} {locale === 'ar' ? 'حمامات' : 'Baths'}
                   </div>
                 </div>
 
@@ -2128,7 +2077,7 @@ export default function PropertyDetailsPage() {
                     {locale === 'ar' ? 'الطابق / الدور' : 'Floor'}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    🏢 {property.floor !== undefined && property.floor !== '' ? (locale === 'ar' ? `الدور ${property.floor}` : `Floor ${property.floor}`) : (locale === 'ar' ? 'طابق ملائم' : 'Standard')}
+                    {property.floor !== undefined && property.floor !== '' ? (locale === 'ar' ? `الدور ${property.floor}` : `Floor ${property.floor}`) : (locale === 'ar' ? 'طابق ملائم' : 'Standard')}
                   </div>
                 </div>
 
@@ -2137,7 +2086,7 @@ export default function PropertyDetailsPage() {
                     {locale === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}
                   </div>
                   <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    📐 {property.area ? `${property.area} ${locale === 'ar' ? 'م²' : 'sqm'}` : (locale === 'ar' ? 'مساحة مناسبة' : 'Ample Space')}
+                    {property.area ? `${property.area} ${locale === 'ar' ? 'م²' : 'sqm'}` : (locale === 'ar' ? 'مساحة مناسبة' : 'Ample Space')}
                   </div>
                 </div>
               </div>
@@ -2154,19 +2103,19 @@ export default function PropertyDetailsPage() {
               }}
             >
               <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#166534', margin: '0 0 0.85rem' }}>
-                💡 {locale === 'ar' ? 'المرافق والفواتير المشمولة في الإيجار' : 'Utilities & Inclusions in Rent'}
+                {locale === 'ar' ? 'المرافق والفواتير المشمولة في الإيجار' : 'Utilities & Inclusions in Rent'}
               </h4>
               <div className="property-inclusions-grid">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.electricityIncluded ? '#15803D' : '#64748B' }}>
-                  <span>{property.electricityIncluded ? '⚡ ✓' : '⚡ ✕'}</span>
+                  <span style={{ fontWeight: 800 }}>{property.electricityIncluded ? '✓' : '✕'}</span>
                   <span>{property.electricityIncluded ? (locale === 'ar' ? 'الكهرباء مشمولة في الإيجار' : 'Electricity Included') : (locale === 'ar' ? 'الكهرباء غير مشمولة (على المستأجر)' : 'Electricity Not Included')}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.waterIncluded ? '#15803D' : '#64748B' }}>
-                  <span>{property.waterIncluded ? '💧 ✓' : '💧 ✕'}</span>
+                  <span style={{ fontWeight: 800 }}>{property.waterIncluded ? '✓' : '✕'}</span>
                   <span>{property.waterIncluded ? (locale === 'ar' ? 'المياه مشمولة في الإيجار' : 'Water Included') : (locale === 'ar' ? 'المياه غير مشمولة (على المستأجر)' : 'Water Not Included')}</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.internetIncluded ? '#15803D' : '#64748B' }}>
-                  <span>{property.internetIncluded ? '🌐 ✓' : '🌐 ✕'}</span>
+                  <span style={{ fontWeight: 800 }}>{property.internetIncluded ? '✓' : '✕'}</span>
                   <span>{property.internetIncluded ? (locale === 'ar' ? 'إنترنت WiFi عالي السرعة مشمول' : 'High-speed WiFi Included') : (locale === 'ar' ? 'الإنترنت غير مشمول' : 'Internet Not Included')}</span>
                 </div>
               </div>
@@ -2176,7 +2125,7 @@ export default function PropertyDetailsPage() {
             {property.description && (
               <div style={{ marginBottom: '1.75rem' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.65rem' }}>
-                  {locale === 'ar' ? '📝 عن السكن' : '📝 About Property'}
+                  {locale === 'ar' ? 'عن السكن' : 'About Property'}
                 </h3>
                 <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.8, fontSize: '0.95rem', margin: 0, whiteSpace: 'pre-line' }}>
                   {typeof (property.description as any) === 'object' && property.description !== null
@@ -2202,7 +2151,11 @@ export default function PropertyDetailsPage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
-                      <span style={{ fontSize: '1.6rem', lineHeight: 1 }}>⚠️</span>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <line x1="12" y1="9" x2="12" y2="13"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                      </svg>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: '0.98rem', color: '#92400E', marginBottom: '0.35rem' }}>
                           {locale === 'ar' ? 'تنبيه: لديك حجز سابق مسجل في هذا السكن' : 'Notice: You have a registered booking in this property'}
@@ -2218,7 +2171,7 @@ export default function PropertyDetailsPage() {
                             return (
                               <div key={bk.id || i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <span style={{ color: '#78350F', fontWeight: 700, fontSize: '0.82rem' }}>
-                                  🏢 {bk.room?.roomType || (locale === 'ar' ? 'طلب حجز' : 'Booking')}
+                                  {bk.room?.roomType || (locale === 'ar' ? 'طلب حجز' : 'Booking')}
                                   {bk.startDate ? ` (من ${formatOccupancyDate(bk.startDate, locale)} إلى ${bk.endDate ? formatOccupancyDate(bk.endDate, locale) : '—'})` : ''}
                                 </span>
                                 <span style={{ backgroundColor: badge.bg, color: badge.color, padding: '2px 8px', borderRadius: '6px', fontWeight: 700, fontSize: '0.74rem' }}>
@@ -2235,10 +2188,10 @@ export default function PropertyDetailsPage() {
 
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--color-navy)', margin: 0 }}>
-                    {locale === 'ar' ? '🛏️ خيارات الغرف والأسرّة المتاحة ومواعيد الشغور' : '🛏️ Available Rooms, Beds & Vacancy Schedule'}
+                    {locale === 'ar' ? 'خيارات الغرف والأسرّة المتاحة ومواعيد الشغور' : 'Available Rooms, Beds & Vacancy Schedule'}
                   </h3>
                   <span style={{ fontSize: '0.8rem', color: '#64748B', fontWeight: 600 }}>
-                    {locale === 'ar' ? '💡 توضح كل غرفة حالة إشغالها وموعد شغورها المتوقع' : '💡 Each room displays its occupancy and expected vacancy date'}
+                    {locale === 'ar' ? 'توضح كل غرفة حالة إشغالها وموعد شغورها المتوقع' : 'Each room displays its occupancy and expected vacancy date'}
                   </span>
                 </div>
 
@@ -2336,7 +2289,10 @@ export default function PropertyDetailsPage() {
                                 gap: '6px',
                               }}
                             >
-                              <span>👤</span>
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                              </svg>
                               <span>{locale === 'ar' ? 'أنت حجزت في هذه الغرفة بالفعل' : 'You have a booking in this room'}</span>
                             </div>
                           )}
@@ -2396,9 +2352,7 @@ export default function PropertyDetailsPage() {
                             }}
                           >
                             <div style={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '3px' }}>
-                              <span>
-                                {occ.badgeType === 'occupied' ? '🔒' : occ.badgeType === 'partial' ? '⏳' : occ.badgeType === 'upcoming' ? '📅' : '✓'}
-                              </span>
+                              <span>•</span>
                               <span>
                                 {occ.badgeType === 'occupied'
                                   ? (locale === 'ar' ? 'موعد الشغور وحالة الغرفة:' : 'Vacancy Schedule & Room Status:')
@@ -2423,7 +2377,7 @@ export default function PropertyDetailsPage() {
                                   fontWeight: 800,
                                 }}
                               >
-                                <span>📅 {locale === 'ar' ? 'فترة الحجز الحالية:' : 'Stay Period:'}</span>
+                                <span>{locale === 'ar' ? 'فترة الحجز الحالية:' : 'Stay Period:'}</span>
                                 <span style={{ color: '#0B2A4A', direction: 'ltr', unicodeBidi: 'embed' }}>
                                   {occ.startFormatted}
                                 </span>
@@ -2451,6 +2405,7 @@ export default function PropertyDetailsPage() {
                             }}
                             style={{
                               width: '100%',
+                              minHeight: '44px',
                               padding: '0.6rem',
                               borderRadius: '8px',
                               backgroundColor: selectedRoomId === room.id ? 'var(--color-blue)' : '#FFFFFF',
@@ -2476,7 +2431,7 @@ export default function PropertyDetailsPage() {
             {Array.isArray(property.amenities) && property.amenities.length > 0 && (
               <div style={{ marginBottom: '1.75rem' }}>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.85rem' }}>
-                  {locale === 'ar' ? '✨ المرافق والخدمات المشمولة' : '✨ Amenities & Inclusions'}
+                  {locale === 'ar' ? 'المرافق والخدمات المشمولة' : 'Amenities & Inclusions'}
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
                   {property.amenities.map((item: any, i: number) => {
@@ -2537,9 +2492,8 @@ export default function PropertyDetailsPage() {
             {/* ── Student Reviews & Ratings Section ───────────────────────────── */}
             <div style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-navy)', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <span>⭐</span>
-                  <span>{locale === 'ar' ? 'تقييمات وتجارب الطلاب' : 'Student Reviews & Ratings'}</span>
+                <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-navy)', margin: 0 }}>
+                  {locale === 'ar' ? 'تقييمات وتجارب الطلاب' : 'Student Reviews & Ratings'}
                 </h3>
                 {reviewsMeta && reviewsMeta.total > 0 && (
                   <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-text-secondary)' }}>
@@ -2614,7 +2568,11 @@ export default function PropertyDetailsPage() {
                     textAlign: 'center',
                   }}
                 >
-                  <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                  </div>
                   <div style={{ fontWeight: 700, color: 'var(--color-navy)', fontSize: '0.95rem', marginBottom: '0.35rem' }}>
                     {locale === 'ar' ? 'لا توجد تقييمات منشورة لهذا السكن بعد' : 'No student reviews published yet'}
                   </div>
@@ -2682,10 +2640,10 @@ export default function PropertyDetailsPage() {
 
                           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '6px', backgroundColor: '#FEF3C7', color: '#B45309', fontWeight: 700 }}>
-                              🏠 {locale === 'ar' ? 'السكن' : 'Property'}: {rev.propertyRating}/5 ★
+                              {locale === 'ar' ? 'السكن' : 'Property'}: {rev.propertyRating}/5 ★
                             </span>
                             <span style={{ fontSize: '0.75rem', padding: '0.25rem 0.6rem', borderRadius: '6px', backgroundColor: '#DCFCE7', color: '#15803D', fontWeight: 700 }}>
-                              👤 {locale === 'ar' ? 'المالك' : 'Owner'}: {rev.ownerRating}/5 ★
+                              {locale === 'ar' ? 'المالك' : 'Owner'}: {rev.ownerRating}/5 ★
                             </span>
                           </div>
                         </div>
@@ -2722,7 +2680,7 @@ export default function PropertyDetailsPage() {
                   {locale === 'ar' ? 'مبلغ التأمين المسترد:' : 'Security Deposit (Refundable):'}
                 </div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 800, color: 'var(--color-navy)' }}>
-                  🛡️ {Number(property.deposit || 0).toLocaleString()} {property.currency}
+                  {Number(property.deposit || 0).toLocaleString()} {property.currency}
                 </div>
                 <div style={{ fontSize: '0.72rem', color: '#64748B', marginTop: '2px' }}>
                   {locale === 'ar' ? 'يُرد بالكامل عند انتهاء مدة الإقامة وتسليم الغرفة.' : 'Refunded upon checkout.'}
@@ -2732,7 +2690,6 @@ export default function PropertyDetailsPage() {
 
             {isAdmin ? (
               <div style={{ backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '12px', padding: '1.25rem', textAlign: 'center', marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '1.5rem', marginBottom: '0.35rem' }}>🛡️</div>
                 <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#1E1B4B', marginBottom: '0.35rem' }}>
                   {locale === 'ar' ? 'وضع مدير النظام (Admin View)' : 'System Administrator View'}
                 </div>
@@ -2759,7 +2716,6 @@ export default function PropertyDetailsPage() {
               </div>
             ) : isOwner && isThisOwnerProperty ? (
               <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '12px', padding: '1rem', textAlign: 'center', marginBottom: '0.75rem' }}>
-                <div style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>🏢</div>
                 <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#166534', marginBottom: '0.25rem' }}>
                   {locale === 'ar' ? 'أنت مالك هذا السكن' : 'You own this property'}
                 </div>
@@ -2799,7 +2755,6 @@ export default function PropertyDetailsPage() {
                       gap: '6px',
                     }}
                   >
-                    <span>ℹ️</span>
                     <span>
                       {locale === 'ar'
                         ? 'يمكنك كمالك حجز هذا السكن لنفسك، وستتمكن من متابعة حجزك وتوقيع العقد في "حجوزاتي الشخصية".'
@@ -2821,7 +2776,6 @@ export default function PropertyDetailsPage() {
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                      <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>💡</span>
                       <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: '0.85rem', color: '#92400E', marginBottom: '0.25rem' }}>
                           {locale === 'ar' ? 'ملاحظة: لديك حجز سابق مسجل في هذا السكن' : 'Notice: You have a prior booking in this property'}
@@ -2885,8 +2839,8 @@ export default function PropertyDetailsPage() {
                     {earliestVacancyDate && (
                       <div style={{ marginTop: '0.55rem', padding: '0.45rem', backgroundColor: '#FEF2F2', borderRadius: '8px', border: '1px dashed #F87171', fontSize: '0.76rem', color: '#7F1D1D', fontWeight: 700 }}>
                         {locale === 'ar'
-                          ? `📅 أقرب موعد متوقع للشغور: ${formatOccupancyDate(earliestVacancyDate, locale)}`
-                          : `📅 Expected next vacancy: ${formatOccupancyDate(earliestVacancyDate, locale)}`}
+                          ? `أقرب موعد متوقع للشغور: ${formatOccupancyDate(earliestVacancyDate, locale)}`
+                          : `Expected next vacancy: ${formatOccupancyDate(earliestVacancyDate, locale)}`}
                       </div>
                     )}
                     {propertyActiveBookingRange?.startFormatted && propertyActiveBookingRange?.endFormatted && (
@@ -2906,7 +2860,7 @@ export default function PropertyDetailsPage() {
                           gap: '6px',
                         }}
                       >
-                        <span>📅 {locale === 'ar' ? 'فترة الحجز الحالية:' : 'Stay Period:'}</span>
+                        <span>{locale === 'ar' ? 'فترة الحجز الحالية:' : 'Stay Period:'}</span>
                         <span style={{ direction: 'ltr', unicodeBidi: 'embed' }}>{propertyActiveBookingRange.startFormatted}</span>
                         <span style={{ color: '#DC2626', fontWeight: 900, fontSize: '0.9rem' }}>↓</span>
                         <span style={{ direction: 'ltr', unicodeBidi: 'embed' }}>{propertyActiveBookingRange.endFormatted}</span>
@@ -2919,6 +2873,7 @@ export default function PropertyDetailsPage() {
                     onClick={handleOpenBookingModal}
                     style={{
                       width: '100%',
+                      minHeight: '48px',
                       padding: '0.9rem',
                       borderRadius: '12px',
                       background: 'var(--color-blue)',
@@ -2935,7 +2890,12 @@ export default function PropertyDetailsPage() {
                       gap: '8px',
                     }}
                   >
-                    <span>📅</span>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6"/>
+                      <line x1="8" y1="2" x2="8" y2="6"/>
+                      <line x1="3" y1="10" x2="21" y2="10"/>
+                    </svg>
                     <span>{locale === 'ar' ? 'طلب حجز سكن' : 'Request to Book'}</span>
                   </button>
                 )}
@@ -2946,6 +2906,7 @@ export default function PropertyDetailsPage() {
                   disabled={favLoading}
                   style={{
                     width: '100%',
+                    minHeight: '44px',
                     padding: '0.75rem',
                     borderRadius: '10px',
                     background: 'transparent',
@@ -2955,11 +2916,20 @@ export default function PropertyDetailsPage() {
                     border: '1px solid rgba(11,42,74,0.15)',
                     cursor: 'pointer',
                     marginTop: '0.35rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
                   }}
                 >
-                  {isFavorite
-                    ? (locale === 'ar' ? '❤️ محفوظ في المفضلة' : '❤️ Saved in Favorites')
-                    : (locale === 'ar' ? '🤍 حفظ في المفضلة' : '🤍 Save to Favorites')}
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill={isFavorite ? '#EF4444' : 'none'} stroke={isFavorite ? '#EF4444' : '#0B2A4A'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                  <span>
+                    {isFavorite
+                      ? (locale === 'ar' ? 'محفوظ في المفضلة' : 'Saved in Favorites')
+                      : (locale === 'ar' ? 'حفظ في المفضلة' : 'Save to Favorites')}
+                  </span>
                 </button>
 
                 <button
@@ -2967,6 +2937,7 @@ export default function PropertyDetailsPage() {
                   onClick={handleOpenReportModal}
                   style={{
                     width: '100%',
+                    minHeight: '44px',
                     padding: '0.65rem',
                     borderRadius: '10px',
                     background: '#FEF2F2',
@@ -2982,7 +2953,11 @@ export default function PropertyDetailsPage() {
                     gap: '6px',
                   }}
                 >
-                  <span>⚠️</span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="12" y1="8" x2="12" y2="12" />
+                    <line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
                   <span>{locale === 'ar' ? 'إبلاغ عن هذا العقار' : 'Report this property'}</span>
                 </button>
               </>
@@ -2994,8 +2969,8 @@ export default function PropertyDetailsPage() {
         {!isAdmin && !isOwner && (
           <p style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', marginTop: '2.5rem', borderTop: '1px solid rgba(11,42,74,0.07)', paddingTop: '1rem' }}>
             {locale === 'ar'
-              ? '💡 للحصول على مزيد من التفاصيل، قم بإرسال طلب الحجز وسيتواصل معك المشرف لتنسيق الحجز عبر الواتساب.'
-              : '💡 For more details, submit a booking request and an admin will coordinate with you via WhatsApp.'}
+              ? 'للحصول على مزيد من التفاصيل، قم بإرسال طلب الحجز وسيتواصل معك المشرف لتنسيق الحجز عبر الواتساب.'
+              : 'For more details, submit a booking request and an admin will coordinate with you via WhatsApp.'}
           </p>
         )}
       </div>

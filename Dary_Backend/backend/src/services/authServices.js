@@ -8,6 +8,7 @@ import { logger } from "../shared/logger/logger.js";
 import { prisma } from "../config/prisma/PrismaService.js";
 import { setMemoryCache } from "../utils/memoryCache.js";
 import { PrismaClientValidationError } from "@prisma/client/runtime/library";
+import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 const OTP_EXPIRY_MINUTES = 2;
 const RESET_PASSWORD_EXPIRY_MINUTES = 5;
@@ -199,9 +200,21 @@ export async function registerUser(
   const role = validatedRole || roleName || roles;
   const isOwnerWithoutEmail = role === "owner" && !email;
 
+  const phoneVariants = [phone];
+  if (phone.startsWith("+20")) {
+    phoneVariants.push("0" + phone.slice(3));
+  } else if (phone.startsWith("0")) {
+    phoneVariants.push("+2" + phone);
+  }
+
   const [existingEmail, existingPhone] = await Promise.all([
     email ? prisma.user.findUnique({ where: { email } }) : null,
-    prisma.user.findUnique({ where: { phone } }),
+    prisma.user.findFirst({
+      where: {
+        phone: { in: phoneVariants },
+        deletedAt: null,
+      },
+    }),
   ]);
 
   // Existing email
@@ -297,6 +310,20 @@ export async function loginUser({ email = "", password, phone = "" }, t) {
     extractedPhoneFromEmail ||
     (!isEmailFormat && email ? email.replace(/\s+/g, "") : null);
 
+  let targetPhoneE164 = targetPhone;
+  let targetPhoneNational = null;
+  if (targetPhone) {
+    let clean = targetPhone.replace(/[\s\-\(\)\.]+/g, "");
+    if (clean.startsWith("00")) clean = "+" + clean.slice(2);
+    const parsed = clean.startsWith("+")
+      ? parsePhoneNumberFromString(clean)
+      : parsePhoneNumberFromString(clean, "EG");
+    if (parsed && parsed.isValid()) {
+      targetPhoneE164 = parsed.number;
+      targetPhoneNational = parsed.nationalNumber ? `0${parsed.nationalNumber}` : null;
+    }
+  }
+
   const rows = await prisma.$queryRaw`
     SELECT
       u.id,
@@ -330,7 +357,13 @@ export async function loginUser({ email = "", password, phone = "" }, t) {
     LEFT JOIN roles r ON r.id = ur.role_id
     WHERE (
       (${targetEmail}::text IS NOT NULL AND u.email = ${targetEmail})
-      OR (${targetPhone}::text IS NOT NULL AND u.phone = ${targetPhone})
+      OR (
+        ${targetPhone}::text IS NOT NULL AND (
+          u.phone = ${targetPhone}
+          OR (${targetPhoneE164}::text IS NOT NULL AND u.phone = ${targetPhoneE164})
+          OR (${targetPhoneNational}::text IS NOT NULL AND u.phone = ${targetPhoneNational})
+        )
+      )
     )
     AND u.deleted_at IS NULL
     GROUP BY u.id

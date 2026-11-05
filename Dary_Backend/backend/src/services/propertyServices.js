@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { prisma } from "../config/prisma/PrismaService.js";
 import { AppError } from "../core/middleware/error/AppError.js";
 import {
@@ -674,54 +675,90 @@ export async function getPropertyFacetsService() {
 
 const inFlightMyProperties = new Map();
 
+// Deterministic non-reversible geographic obfuscation (350m - 550m offset)
+export function getApproximateCoordinates(propertyId, latitude, longitude) {
+  if (
+    typeof latitude !== "number" ||
+    typeof longitude !== "number" ||
+    Number.isNaN(latitude) ||
+    Number.isNaN(longitude)
+  ) {
+    return { latitude: null, longitude: null };
+  }
+
+  const hash = crypto
+    .createHash("sha256")
+    .update(`${propertyId}:dary_geo_obfuscation_salt_2026`)
+    .digest("hex");
+
+  const angleInt = parseInt(hash.slice(0, 8), 16);
+  const theta = (angleInt / 0xffffffff) * 2 * Math.PI;
+
+  const distInt = parseInt(hash.slice(8, 16), 16);
+  const distanceMeters = 350 + (distInt / 0xffffffff) * 200;
+
+  const deltaLat = (distanceMeters * Math.cos(theta)) / 111320;
+  const latRad = (latitude * Math.PI) / 180;
+  const deltaLng =
+    (distanceMeters * Math.sin(theta)) /
+    (111320 * Math.max(Math.cos(latRad), 0.2));
+
+  const approxLat = Number((latitude + deltaLat).toFixed(6));
+  const approxLng = Number((longitude + deltaLng).toFixed(6));
+
+  return { latitude: approxLat, longitude: approxLng };
+}
+
 // Get Single Property
 export async function getPropertyByIdService(id, viewer = null, t) {
   const cacheKey = `properties:id:${id}`;
-  const cached = getMemoryCache(cacheKey);
+  let property = getMemoryCache(cacheKey);
 
-  if (cached !== null) {
-    recordPropertyView(id);
-    return cached;
-  }
-
-  const property = await prisma.property.findFirst({
-    where: {
-      id,
-      deletedAt: null,
-    },
-    include: {
-      images: {
-        orderBy: { order: "asc" },
+  if (property === null) {
+    property = await prisma.property.findFirst({
+      where: {
+        id,
+        deletedAt: null,
       },
-      rooms_: {
-        select: {
-          id: true,
-          propertyId: true,
-          roomType: true,
-          pricePerBed: true,
-          totalBeds: true,
-          availableBeds: true,
-          status: true,
-          photoUrl: true,
-          photoPublicId: true,
-          createdAt: true,
-          updatedAt: true,
+      include: {
+        images: {
+          orderBy: { order: "asc" },
+        },
+        rooms_: {
+          select: {
+            id: true,
+            propertyId: true,
+            roomType: true,
+            pricePerBed: true,
+            totalBeds: true,
+            availableBeds: true,
+            status: true,
+            photoUrl: true,
+            photoPublicId: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        owner: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            avatar: true,
+            whatsappPhone: true,
+          },
         },
       },
-      owner: {
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          avatar: true,
-          whatsappPhone: true,
-        },
-      },
-    },
-  });
+    });
 
-  if (!property) {
-    throw new AppError(t("property.notFound"), 404);
+    if (!property) {
+      throw new AppError(t("property.notFound"), 404);
+    }
+
+    // Only cache approved properties
+    if (property.status === "APPROVED") {
+      setMemoryCache(cacheKey, property, 60);
+    }
   }
 
   const isOwner = viewer?.id && viewer.id === property.ownerId;
@@ -734,12 +771,34 @@ export async function getPropertyByIdService(id, viewer = null, t) {
   // Increment view count in memory buffer
   recordPropertyView(id);
 
-  // Only cache approved properties publicly
-  if (property.status === "APPROVED") {
-    setMemoryCache(cacheKey, property, 60);
+  // If owner or admin: return full raw coordinates and exact address
+  if (isOwner || isAdmin) {
+    return {
+      ...property,
+      isApproximateLocation: false,
+    };
   }
 
-  return property;
+  // Non-privileged viewers: obfuscate coordinates and detailed street address
+  const approxCoords = getApproximateCoordinates(
+    property.id,
+    property.latitude,
+    property.longitude
+  );
+
+  const safeAddress =
+    [property.district, property.city].filter(Boolean).join(", ") ||
+    property.city ||
+    property.governorate ||
+    null;
+
+  return {
+    ...property,
+    address: safeAddress,
+    latitude: approxCoords.latitude,
+    longitude: approxCoords.longitude,
+    isApproximateLocation: true,
+  };
 }
 
 // Get My Properties (Owner)

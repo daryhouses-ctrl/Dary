@@ -2,14 +2,32 @@ import { z } from "zod";
 import { parsePhoneNumberFromString } from "libphonenumber-js";
 
 const phoneSchema = z
-  .string()
+  .string({ required_error: "phone is required" })
   .trim()
-  .transform((val) => val.replace(/\s+/g, ""))
+  .transform((val) => val.replace(/[\s\-\(\)\.]+/g, ""))
   .refine((value) => {
-    const phoneNumber = parsePhoneNumberFromString(value);
+    if (!value) return false;
+    let normalized = value.startsWith("00") ? `+${value.slice(2)}` : value;
+    if (normalized.startsWith("+200")) {
+      normalized = "+20" + normalized.slice(4);
+    }
+    const phoneNumber = normalized.startsWith("+")
+      ? parsePhoneNumberFromString(normalized)
+      : parsePhoneNumberFromString(normalized, "EG");
 
     return phoneNumber?.isValid() ?? false;
-  }, "phone must be a valid international phone number");
+  }, "phone must be a valid phone number")
+  .transform((value) => {
+    let normalized = value.startsWith("00") ? `+${value.slice(2)}` : value;
+    if (normalized.startsWith("+200")) {
+      normalized = "+20" + normalized.slice(4);
+    }
+    const phoneNumber = normalized.startsWith("+")
+      ? parsePhoneNumberFromString(normalized)
+      : parsePhoneNumberFromString(normalized, "EG");
+
+    return phoneNumber?.number || normalized;
+  });
 
 const passwordSchema = z
   .string({ required_error: "password is required" })
@@ -94,7 +112,7 @@ export const loginSchema = z
     phone: z
       .string()
       .trim()
-      .transform((val) => val.replace(/\s+/g, ""))
+      .transform((val) => val.replace(/[\s\-\(\)\.]+/g, ""))
       .optional(),
     password: z
       .string({ required_error: "password is required" })

@@ -7,7 +7,6 @@ import { fetchGlobalActiveBookings } from '../services/occupancyService';
 import type { Property } from '../types/property';
 import PropertyCard from '../components/PropertyCard/PropertyCard';
 import AnimatedCounter from '../components/common/AnimatedCounter';
-import InteractiveMap from '../components/common/InteractiveMap';
 import DarySelect from '../components/common/DarySelect';
 import {
   LocationService,
@@ -17,8 +16,22 @@ import {
   DEFAULT_CAIRO_LAT,
   DEFAULT_CAIRO_LNG,
 } from '../services/locationService';
-import type { Coordinates } from '../services/locationService';
+import type { Coordinates, NearbyPlace } from '../services/locationService';
 import './PropertiesPage.css';
+
+const NEARBY_CATEGORY_LABELS: Record<
+  NearbyPlace['category'],
+  { ar: string; en: string }
+> = {
+  university: { ar: 'جامعات وكليات', en: 'Universities' },
+  transport: { ar: 'مواصلات ومترو', en: 'Transit' },
+  pharmacy: { ar: 'صيدليات', en: 'Pharmacies' },
+  hospital: { ar: 'مراكز طبية', en: 'Medical' },
+  supermarket: { ar: 'سوبر ماركت', en: 'Supermarkets' },
+  restaurant: { ar: 'مطاعم', en: 'Restaurants' },
+  cafe: { ar: 'كافيهات ومذاكرة', en: 'Cafes' },
+  other: { ar: 'خدمات قريبة', en: 'Other' },
+};
 
 interface PriceRangeOption {
   value: string;
@@ -145,6 +158,22 @@ const ChevronDownIcon = () => (
     aria-hidden="true"
   >
     <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const ChevronUpIcon = () => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+  >
+    <polyline points="18 15 12 9 6 15" />
   </svg>
 );
 
@@ -603,8 +632,7 @@ export default function PropertiesPage() {
     return allProperties.filter((prop) => matchesPropertyFilters(prop, activeFilterParams));
   }, [allProperties, activeFilterParams]);
 
-  // Client-side Sorting & Map View State
-  const [showMap, setShowMap] = useState(false);
+  // Client-side Sorting & Location Proximity State
   const [userCoords, setUserCoords] = useState<Coordinates | null>(() =>
     LocationService.getCachedUserLocation()
   );
@@ -649,9 +677,8 @@ export default function PropertiesPage() {
       const coords = await LocationService.detectAndSyncProfileLocation(true);
       setUserCoords(coords);
       setSortBy('nearest');
-      setShowMap(true);
     } catch {
-      setShowMap(true);
+      // User dismissed or geolocation unsupported
     } finally {
       setDetectingNearMe(false);
     }
@@ -695,6 +722,43 @@ export default function PropertiesPage() {
     }
     return list;
   }, [properties, sortBy, userCoords, geocodeTick]);
+
+  // Nearby Places State
+  const [nearbyRadius, setNearbyRadius] = useState<number>(3);
+  const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
+  const [loadingNearby, setLoadingNearby] = useState(false);
+  const [selectedNearbyCategory, setSelectedNearbyCategory] = useState<string>('all');
+  const [showAllNearby, setShowAllNearby] = useState(false);
+
+  // Fetch nearby places automatically on page load and when radius / location / properties change
+  useEffect(() => {
+    let cancelled = false;
+    const refLat = userCoords?.latitude ?? (sortedProperties[0] ? resolveCoordinates(sortedProperties[0]).latitude : DEFAULT_CAIRO_LAT);
+    const refLng = userCoords?.longitude ?? (sortedProperties[0] ? resolveCoordinates(sortedProperties[0]).longitude : DEFAULT_CAIRO_LNG);
+
+    setLoadingNearby(true);
+    LocationService.getNearbyPlaces(refLat, refLng, nearbyRadius)
+      .then((res) => {
+        if (!cancelled && res?.places) {
+          setNearbyPlaces(res.places);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setNearbyPlaces([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingNearby(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [nearbyRadius, userCoords, sortedProperties]);
+
+  const filteredNearbyPlaces = useMemo(() => {
+    if (selectedNearbyCategory === 'all') return nearbyPlaces;
+    return nearbyPlaces.filter((p) => p.category === selectedNearbyCategory);
+  }, [nearbyPlaces, selectedNearbyCategory]);
 
   // Check if any filter is active
   const activeFilterCount = [
@@ -1217,22 +1281,6 @@ export default function PropertiesPage() {
           <div className="dary-results-actions">
             <button
               type="button"
-              className={`dary-toolbar-btn dary-map-btn ${showMap ? 'is-active' : ''}`}
-              onClick={() => setShowMap((prev) => !prev)}
-            >
-              <span>
-                {showMap
-                  ? locale === 'ar'
-                    ? 'إخفاء الخريطة'
-                    : 'Hide Map'
-                  : locale === 'ar'
-                  ? 'عرض على الخريطة'
-                  : 'Show on Map'}
-              </span>
-            </button>
-
-            <button
-              type="button"
               className={`dary-toolbar-btn dary-gps-btn ${sortBy === 'nearest' ? 'is-active' : ''}`}
               onClick={handleSortNearMe}
               disabled={detectingNearMe}
@@ -1263,65 +1311,6 @@ export default function PropertiesPage() {
             </div>
           </div>
         </div>
-
-        {/* Collapsible Interactive Map showing all properties */}
-        {showMap && (
-          <div style={{ marginBottom: '2rem' }}>
-            <InteractiveMap
-              latitude={userCoords?.latitude ?? (sortedProperties[0] ? resolveCoordinates(sortedProperties[0]).latitude : DEFAULT_CAIRO_LAT)}
-              longitude={userCoords?.longitude ?? (sortedProperties[0] ? resolveCoordinates(sortedProperties[0]).longitude : DEFAULT_CAIRO_LNG)}
-              locationContext={
-                !userCoords && city !== 'all' && city !== ''
-                  ? { city }
-                  : sortedProperties[0]
-                  ? {
-                      address: sortedProperties[0].address,
-                      district: sortedProperties[0].district,
-                      city: sortedProperties[0].city,
-                      governorate: sortedProperties[0].governorate,
-                      nearestUniversity: sortedProperties[0].nearestUniversity,
-                    }
-                  : undefined
-              }
-              title={locale === 'ar' ? '🗺️ خريطة السكن الطلابي والأماكن القريبة' : '🗺️ Student Housing Map & Nearby'}
-              subtitle={
-                userCoords
-                  ? locale === 'ar'
-                    ? 'مرتبة حسب الأقرب لموقعك الحالي'
-                    : 'Sorted by proximity to your GPS location'
-                  : city && city !== 'all'
-                  ? city
-                  : locale === 'ar'
-                  ? 'مواقع العقارات المتاحة والأماكن القريبة'
-                  : 'Available Property Locations & Nearby Places'
-              }
-              height="400px"
-              showNearby={true}
-              syncProfileOnDetect={true}
-              locale={locale}
-              onProfileSynced={(lat, lng) => {
-                setUserCoords({ latitude: lat, longitude: lng });
-                setSortBy('nearest');
-              }}
-              markers={sortedProperties.map((p) => {
-                const c = resolveCoordinates(p);
-                const tTitle =
-                  typeof p.title === 'object' ? p.title[locale] || p.title.ar || p.title.en : String(p.title);
-                const tLoc =
-                  typeof p.location === 'object' ? p.location[locale] || p.location.ar || p.location.en : String(p.location);
-                return {
-                  id: p.id,
-                  latitude: c.latitude,
-                  longitude: c.longitude,
-                  title: tTitle,
-                  subtitle: tLoc,
-                  priceText: `${Number(p.price || 0).toLocaleString()} ${p.currency}`,
-                  href: `/properties/${p.id}`,
-                };
-              })}
-            />
-          </div>
-        )}
 
         {/* State 1: Loading Skeleton Grid */}
         {loading && (
@@ -1408,6 +1397,132 @@ export default function PropertiesPage() {
             ))}
           </div>
         )}
+
+        {/* ── Nearby Places & Services Section ───────────────────────────── */}
+        <section className="dary-nearby-section" aria-label={locale === 'ar' ? 'الأماكن والخدمات القريبة' : 'Nearby Places & Services'}>
+          <div className="dary-nearby-header">
+            <div className="dary-nearby-header-title">
+              <h3 className="dary-nearby-title-text">
+                {locale === 'ar' ? 'الأماكن والخدمات القريبة' : 'Nearby Places & Services'}
+              </h3>
+              {nearbyPlaces.length > 0 && (
+                <span className="dary-nearby-count-badge">
+                  {nearbyPlaces.length} {locale === 'ar' ? 'مكان' : 'places'}
+                </span>
+              )}
+            </div>
+
+            {/* Radius and Category Controls */}
+            <div className="dary-nearby-toolbar">
+              <div className="dary-nearby-radius-group">
+                <span className="dary-nearby-label">
+                  {locale === 'ar' ? 'نطاق البحث:' : 'Radius:'}
+                </span>
+                {[1, 3, 5].map((r) => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`dary-nearby-radius-btn ${nearbyRadius === r ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setNearbyRadius(r);
+                      setShowAllNearby(false);
+                    }}
+                  >
+                    {r} {locale === 'ar' ? 'كم' : 'km'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Category Filter Pills */}
+              <div className="dary-nearby-cats">
+                <button
+                  type="button"
+                  className={`dary-nearby-cat-btn ${selectedNearbyCategory === 'all' ? 'is-active' : ''}`}
+                  onClick={() => {
+                    setSelectedNearbyCategory('all');
+                    setShowAllNearby(false);
+                  }}
+                >
+                  {locale === 'ar' ? `الكل (${nearbyPlaces.length})` : `All (${nearbyPlaces.length})`}
+                </button>
+
+                {(Object.keys(NEARBY_CATEGORY_LABELS) as Array<NearbyPlace['category']>).map((cat) => {
+                  const count = nearbyPlaces.filter((p) => p.category === cat).length;
+                  if (count === 0) return null;
+                  const meta = NEARBY_CATEGORY_LABELS[cat];
+                  const active = selectedNearbyCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      className={`dary-nearby-cat-btn ${active ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setSelectedNearbyCategory(cat);
+                        setShowAllNearby(false);
+                      }}
+                    >
+                      <span>{locale === 'ar' ? meta.ar : meta.en}</span>
+                      <span className="dary-nearby-cat-count">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Results Display */}
+          {loadingNearby ? (
+            <div className="dary-nearby-loading">
+              <div className="dary-nearby-spinner" />
+              <span>{locale === 'ar' ? 'جاري البحث عن الأماكن والخدمات القريبة...' : 'Searching nearby places...'}</span>
+            </div>
+          ) : filteredNearbyPlaces.length === 0 ? (
+            <div className="dary-nearby-empty">
+              {locale === 'ar'
+                ? 'لا توجد أماكن مسجلة في هذا النطاق. جرب اختيار 3 أو 5 كم.'
+                : 'No places found within this radius. Try selecting 3 or 5 km.'}
+            </div>
+          ) : (
+            <div className="dary-nearby-content-wrap">
+              <div className="dary-nearby-grid">
+                {(showAllNearby ? filteredNearbyPlaces : filteredNearbyPlaces.slice(0, 3)).map((place) => {
+                  const catLabel = NEARBY_CATEGORY_LABELS[place.category] || NEARBY_CATEGORY_LABELS.other;
+                  return (
+                    <div key={place.id} className="dary-nearby-item">
+                      <div className="dary-nearby-item-info">
+                        <span className="dary-nearby-item-name">
+                          {locale === 'ar' ? place.name : (place.nameEn || place.name)}
+                        </span>
+                        <span className="dary-nearby-item-sub">
+                          {place.address || (locale === 'ar' ? catLabel.ar : catLabel.en)}
+                        </span>
+                      </div>
+                      {place.distanceKm !== undefined && (
+                        <span className="dary-nearby-distance-badge">
+                          {place.distanceKm} {locale === 'ar' ? 'كم' : 'km'}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {filteredNearbyPlaces.length > 3 && (
+                <div className="dary-nearby-more-wrap">
+                  <button
+                    type="button"
+                    className="dary-nearby-more-btn"
+                    onClick={() => setShowAllNearby((prev) => !prev)}
+                    aria-expanded={showAllNearby}
+                  >
+                    <span>{showAllNearby ? (locale === 'ar' ? 'عرض أقل' : 'Show Less') : (locale === 'ar' ? 'عرض المزيد' : 'Show More')}</span>
+                    {showAllNearby ? <ChevronUpIcon /> : <ChevronDownIcon />}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Mobile Filters Slide-Over Drawer */}
