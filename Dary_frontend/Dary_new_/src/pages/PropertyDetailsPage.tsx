@@ -1278,19 +1278,76 @@ export default function PropertyDetailsPage() {
     <main className="page property-details-main">
       <div className="container property-details-container">
 
-        {/* Back link */}
-        <Link
-          to="/properties"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem', color: 'var(--color-text-secondary)', fontSize: '0.9rem', fontWeight: 600, textDecoration: 'none', marginBottom: '1.5rem' }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            {locale === 'ar' ? <polyline points="9 18 15 12 9 6" /> : <polyline points="15 18 9 12 15 6" />}
-          </svg>
-          {locale === 'ar' ? 'العودة إلى القائمة' : 'Back to listings'}
-        </Link>
+        {/* ── Section 1: Breadcrumbs ─────────────────────────────────────── */}
+        <nav className="property-breadcrumbs" aria-label="Breadcrumb">
+          <Link to="/" className="property-breadcrumb-link">
+            {locale === 'ar' ? 'الرئيسية' : 'Home'}
+          </Link>
+          <span className="property-breadcrumb-sep">/</span>
+          <Link to="/properties" className="property-breadcrumb-link">
+            {locale === 'ar' ? 'العقارات' : 'Properties'}
+          </Link>
+          <span className="property-breadcrumb-sep">/</span>
+          <span className="property-breadcrumb-current" aria-current="page">
+            {displayTitle}
+          </span>
+        </nav>
 
-        {/* ── Multi-Image Interactive Gallery ──────────────────────────────── */}
-        <div style={{ marginBottom: '2rem' }}>
+        {/* ── Section 2: Property Header (Badges, Title, Location) ───────── */}
+        <div className="property-header-block">
+          <div className="property-badges-row">
+            {property.status && (
+              <span className={`property-badge ${property.status === 'APPROVED' ? 'property-badge-verified' : 'property-badge-pending'}`}>
+                {property.status === 'APPROVED'
+                  ? (locale === 'ar' ? '✓ معتمد وموثق من داري' : '✓ Verified Listing')
+                  : property.status === 'PENDING'
+                  ? (locale === 'ar' ? 'قيد مراجعة الإدارة' : 'Pending Review')
+                  : property.status}
+              </span>
+            )}
+
+            <span className={`property-badge ${property.propertyClass === 'LUXURY' ? 'property-badge-luxury' : 'property-badge-standard'}`}>
+              {property.propertyClass === 'LUXURY'
+                ? (locale === 'ar' ? '★ فئة فاخرة (Luxury)' : '★ Luxury Class')
+                : (locale === 'ar' ? 'فئة اقتصادية قياسية' : 'Standard Class')}
+            </span>
+
+            <span className="property-badge property-badge-gender">
+              {property.genderAllowed === 'female_only'
+                ? (locale === 'ar' ? 'سكن طالبات (إناث فقط)' : 'Female Only')
+                : property.genderAllowed === 'male_only'
+                ? (locale === 'ar' ? 'سكن طلاب (شباب فقط)' : 'Male Only')
+                : (locale === 'ar' ? 'متاح للجميع' : 'Open to All')}
+            </span>
+
+            {property.targetTenantType === 'STUDENT' && (
+              <span className="property-badge property-badge-student">
+                {locale === 'ar' ? 'مخصص للطلاب والدارسين' : 'Students Only'}
+              </span>
+            )}
+
+            <span className={`property-badge ${isFullyBooked ? 'property-badge-booked' : 'property-badge-vacant'}`}>
+              {isFullyBooked
+                ? (locale === 'ar'
+                    ? (earliestVacancyDate ? `ممتلئ بالكامل (شاغر ${formatOccupancyDate(earliestVacancyDate, locale)})` : 'ممتلئ بالكامل حالياً')
+                    : (earliestVacancyDate ? `Fully Booked (${formatOccupancyDate(earliestVacancyDate, locale)})` : 'Fully Booked'))
+                : (locale === 'ar' ? '✓ تتوفر أسرّة شاغرة للحجز الفوري' : '✓ Vacant Beds Available Now')}
+            </span>
+          </div>
+
+          <h1 className="property-main-title">{displayTitle}</h1>
+
+          <div className="property-location-line">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--dary-navy)', flexShrink: 0 }}>
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span className="property-location-text">{displayLocation}</span>
+          </div>
+        </div>
+
+        {/* ── Section 3: Multi-Image Interactive Gallery ──────────────────── */}
+        <div className="property-gallery-section">
           {/* Main Photo Viewport with Ambient Blurred Backdrop & Full Uncropped Image */}
           <div
             onTouchStart={handleTouchStart}
@@ -1632,7 +1689,7 @@ export default function PropertyDetailsPage() {
                       width: activeImageIndex === idx ? '24px' : '8px',
                       height: '8px',
                       borderRadius: '999px',
-                      backgroundColor: activeImageIndex === idx ? 'var(--color-blue)' : 'rgba(255, 255, 255, 0.55)',
+                      backgroundColor: activeImageIndex === idx ? 'var(--dary-gold)' : 'rgba(255, 255, 255, 0.55)',
                       border: 'none',
                       cursor: 'pointer',
                       padding: 0,
@@ -1671,14 +1728,14 @@ export default function PropertyDetailsPage() {
                         flexShrink: 0,
                         borderRadius: '14px',
                         overflow: 'hidden',
-                        border: isSelected ? '3px solid var(--color-blue)' : '2px solid #E2E8F0',
+                        border: isSelected ? '3px solid var(--dary-gold)' : '2px solid #E2E8F0',
                         opacity: isSelected ? 1 : 0.65,
                         transform: isSelected ? 'scale(1.04)' : 'scale(1)',
                         transition: 'all 0.2s ease',
                         cursor: 'pointer',
                         padding: 0,
                         backgroundColor: '#0F172A',
-                        boxShadow: isSelected ? '0 4px 14px rgba(47, 107, 255, 0.3)' : 'none',
+                        boxShadow: isSelected ? '0 4px 14px rgba(11, 42, 74, 0.25)' : 'none',
                       }}
                     >
                       <img
@@ -1721,125 +1778,9 @@ export default function PropertyDetailsPage() {
 
         {/* ── Main Two-Column Layout ───────────────────────────────────────── */}
         <div className="property-details-layout">
-          <div>
-            {/* Header: Title & Badges */}
-            <div style={{ marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.65rem' }}>
-                {property.status && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      padding: '0.35rem 0.8rem',
-                      borderRadius: '999px',
-                      backgroundColor: property.status === 'APPROVED' ? '#DCFCE7' : '#FEF3C7',
-                      color: property.status === 'APPROVED' ? '#15803D' : '#D97706',
-                    }}
-                  >
-                    {property.status === 'APPROVED'
-                      ? (locale === 'ar' ? '✓ معتمد وموثق من داري' : '✓ Verified Listing')
-                      : property.status === 'PENDING'
-                      ? (locale === 'ar' ? 'قيد مراجعة الإدارة' : 'Pending Review')
-                      : property.status}
-                  </span>
-                )}
+          <div className="property-details-content">
 
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: '999px',
-                    backgroundColor: property.propertyClass === 'LUXURY' ? '#FEF9C3' : '#F1F5F9',
-                    color: property.propertyClass === 'LUXURY' ? '#A16207' : 'var(--color-navy)',
-                  }}
-                >
-                  {property.propertyClass === 'LUXURY'
-                    ? (locale === 'ar' ? 'فئة فاخرة (Luxury)' : 'Luxury Class')
-                    : (locale === 'ar' ? 'فئة اقتصادية قياسية' : 'Standard Class')}
-                </span>
-
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: '999px',
-                    backgroundColor: property.genderAllowed === 'female_only' ? '#FCE7F3' : property.genderAllowed === 'male_only' ? '#E0F2FE' : '#F3E8FF',
-                    color: property.genderAllowed === 'female_only' ? '#BE185D' : property.genderAllowed === 'male_only' ? '#0369A1' : '#6B21A8',
-                  }}
-                >
-                  {property.genderAllowed === 'female_only'
-                    ? (locale === 'ar' ? 'سكن طالبات (إناث فقط)' : 'Female Only')
-                    : property.genderAllowed === 'male_only'
-                    ? (locale === 'ar' ? 'سكن طلاب (شباب فقط)' : 'Male Only')
-                    : (locale === 'ar' ? 'متاح للجميع' : 'Open to All')}
-                </span>
-
-                {property.targetTenantType === 'STUDENT' && (
-                  <span
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      fontSize: '0.8rem',
-                      fontWeight: 700,
-                      padding: '0.35rem 0.8rem',
-                      borderRadius: '999px',
-                      backgroundColor: '#EFF6FF',
-                      color: 'var(--color-blue)',
-                    }}
-                  >
-                    {locale === 'ar' ? 'مخصص للطلاب والدارسين' : 'Students Only'}
-                  </span>
-                )}
-
-                {/* Property Occupancy & Vacancy Header Badge */}
-                <span
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.35rem',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    padding: '0.35rem 0.8rem',
-                    borderRadius: '999px',
-                    backgroundColor: isFullyBooked ? '#FEE2E2' : '#DCFCE7',
-                    color: isFullyBooked ? '#991B1B' : '#15803D',
-                    border: `1px solid ${isFullyBooked ? '#FECACA' : '#BBF7D0'}`,
-                  }}
-                >
-                  {isFullyBooked
-                    ? (locale === 'ar'
-                        ? (earliestVacancyDate ? `ممتلئ بالكامل (سيفضى في ${formatOccupancyDate(earliestVacancyDate, locale)})` : 'ممتلئ بالكامل حالياً')
-                        : (earliestVacancyDate ? `Fully Booked (Vacant ${formatOccupancyDate(earliestVacancyDate, locale)})` : 'Fully Booked'))
-                    : (locale === 'ar' ? '✓ تتوفر أسرّة شاغرة للحجز الفوري' : '✓ Vacant Beds Available Now')}
-                </span>
-              </div>
-
-              <h1 style={{ fontSize: '1.95rem', fontWeight: 900, color: 'var(--color-navy)', marginBottom: '0.65rem', lineHeight: 1.3 }}>
-                {displayTitle}
-              </h1>
-
-              <p style={{ fontSize: '1rem', color: 'var(--color-text-secondary)', display: 'flex', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-blue)', flexShrink: 0 }}>
-                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                  <circle cx="12" cy="10" r="3" />
-                </svg>
-                <span>{displayLocation}</span>
-              </p>
-            </div>
-
-            {/* ── Mobile Prominent Price & Booking Card (< 992px) ─────────────── */}
+            {/* ── Section 4: Mobile Prominent Price & Booking Card (< 992px) ─── */}
             <div className="property-mobile-booking-card">
               <div className="property-mobile-price-row">
                 <div>
@@ -1883,251 +1824,61 @@ export default function PropertyDetailsPage() {
               ) : null}
             </div>
 
-            {/* Detailed Location & Proximity Box */}
-            {(() => {
-              const effectiveAddress =
-                resolvedMapAddress ||
-                resolvedRev?.address ||
-                formatCleanAddress(
-                  {
-                    address: property.address,
-                    district: property.district,
-                    city: property.city,
-                    governorate: property.governorate,
-                    nearestUniversity: property.nearestUniversity,
-                    location: property.location,
-                    title: property.title,
-                  },
-                  null,
-                  locale
-                ) ||
-                property.address;
-
-              const normUniv = normalizeUniversityName(
-                resolvedRev?.nearestUniversity || property.nearestUniversity,
-                property.latitude,
-                property.longitude,
-                locale
-              );
-              const effectiveUnivName = resolvedRev?.nearestUniversity || normUniv.name || property.nearestUniversity;
-              const effectiveUnivDist =
-                resolvedRev?.distanceToUniversityKm !== undefined
-                  ? resolvedRev.distanceToUniversityKm
-                  : normUniv.distanceKm !== undefined
-                  ? normUniv.distanceKm
-                  : property.distanceToUniversity;
-
-              if (!effectiveAddress && !effectiveUnivName) return null;
-
-              return (
-                <div
-                  style={{
-                    backgroundColor: '#F8FAFC',
-                    border: '1px solid #E2E8F0',
-                    borderRadius: '16px',
-                    padding: '1.15rem 1.25rem',
-                    marginBottom: '1.75rem',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '0.65rem',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.92rem', color: 'var(--color-navy)', flexWrap: 'wrap' }}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-blue)', flexShrink: 0 }}>
-                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-                      <circle cx="12" cy="10" r="3" />
-                    </svg>
-                    <span style={{ fontWeight: 800 }}>
-                      {(isThisOwnerProperty || isAdmin)
-                        ? (locale === 'ar' ? 'العنوان المسجل (خاص بالإدارة والمالك):' : 'Registered Address (Owner/Admin):')
-                        : (locale === 'ar' ? 'الموقع العام والمنطقة:' : 'General Location & District:')}
-                    </span>
-                    <span style={{ color: '#0F172A', fontWeight: 700 }}>
-                      {(isThisOwnerProperty || isAdmin)
-                        ? effectiveAddress
-                        : ([property.district, property.city].filter(Boolean).join(', ') || property.address || displayLocation)}
-                    </span>
-                  </div>
-
-                  {!isThisOwnerProperty && !isAdmin && (
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        padding: '0.55rem 0.85rem',
-                        borderRadius: '10px',
-                        backgroundColor: '#FEF3C7',
-                        border: '1px solid #FDE68A',
-                        color: '#92400E',
-                        fontSize: '0.78rem',
-                        fontWeight: 600,
-                        lineHeight: 1.45,
-                      }}
-                    >
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#B45309' }}>
-                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                      </svg>
-                      <span>
-                        {locale === 'ar'
-                          ? 'يُعرض موقع العقار بنطاق تقريبي (نصف قطر 1 كم) لحفظ خصوصية وأمان السكن. يتم تزويدك بالعنوان الدقيق ورقم المبنى فور تأكيد الحجز.'
-                          : 'Property location is displayed within an approximate 1 km radius to protect housing privacy. The exact building address is provided upon booking confirmation.'}
-                      </span>
-                    </div>
-                  )}
-
-                  {effectiveUnivName && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.9rem', color: '#1E40AF', flexWrap: 'wrap' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
-                        <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                        <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-                      </svg>
-                      <span style={{ fontWeight: 700 }}>{locale === 'ar' ? 'الجامعة الأقرب:' : 'Nearest University:'}</span>
-                      <span style={{ fontWeight: 800, color: '#0B2A4A' }}>{effectiveUnivName}</span>
-                      {effectiveUnivDist !== undefined && (
-                        <span style={{ backgroundColor: '#DBEAFE', color: '#1E40AF', padding: '2px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 800 }}>
-                          {effectiveUnivDist} {locale === 'ar' ? 'كم' : 'km'}
-                        </span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })()}
-
-            {/* ── Interactive Map & Nearby Places (/api/nearby) ─────────────── */}
-            <div style={{ marginBottom: '1.75rem' }}>
-              <InteractiveMap
-                latitude={property.latitude}
-                longitude={property.longitude}
-                locationContext={{
-                  id: property.id,
-                  address: (isThisOwnerProperty || isAdmin) ? property.address : undefined,
-                  district: property.district,
-                  city: property.city,
-                  governorate: property.governorate,
-                  nearestUniversity: property.nearestUniversity,
-                  location: property.location,
-                  title: property.title,
-                }}
-                title={displayTitle}
-                subtitle={(isThisOwnerProperty || isAdmin) ? (resolvedMapAddress || displayLocation) : ([property.district, property.city].filter(Boolean).join(', ') || displayLocation)}
-                height="360px"
-                editable={false}
-                showNearby={true}
-                initialRadiusKm={1}
-                hideRouteControls={true}
-                disableUserLocation={true}
-                approximateLocation={true}
-                showCoordinates={false}
-                autoDetectOnMount={false}
-                syncProfileOnDetect={false}
-                locale={locale}
-                onAddressResolved={(cleanAddr, rev) => {
-                  if (cleanAddr) setResolvedMapAddress(cleanAddr);
-                  if (rev) setResolvedRev(rev);
-                }}
-              />
-            </div>
-
-            {/* ── Key Specifications Grid (6 Tiles) ─────────────────────────── */}
-            <div style={{ marginBottom: '1.75rem' }}>
-              <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.9rem' }}>
-                {locale === 'ar' ? 'مواصفات وبيانات السكن' : 'Property Specifications'}
+            {/* ── Section 5: Key Specifications Grid (6 Tiles) ──────────────── */}
+            <div className="property-section-card" style={{ marginBottom: '1.75rem' }}>
+              <h3 className="property-section-title" style={{ margin: '0 0 0.95rem' }}>
+                {locale === 'ar' ? 'المواصفات الأساسية للسكن' : 'Key Property Specifications'}
               </h3>
               <div className="property-specs-grid">
-                <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {locale === 'ar' ? 'نوع العقار' : 'Property Type'}
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
-                    {displayType}
-                  </div>
+                <div className="property-spec-item">
+                  <div className="property-spec-label">{locale === 'ar' ? 'نوع العقار' : 'Property Type'}</div>
+                  <div className="property-spec-val">{displayType}</div>
                 </div>
 
-                <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {locale === 'ar' ? 'حالة الفرش' : 'Furnishing'}
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
+                <div className="property-spec-item">
+                  <div className="property-spec-label">{locale === 'ar' ? 'حالة الفرش' : 'Furnishing'}</div>
+                  <div className="property-spec-val">
                     {property.isFurnished ? (locale === 'ar' ? 'مفروش بالكامل' : 'Fully Furnished') : (locale === 'ar' ? 'غير مفروش' : 'Unfurnished')}
                   </div>
                 </div>
 
-                <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {locale === 'ar' ? 'عدد الغرف' : 'Bedrooms'}
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
+                <div className="property-spec-item">
+                  <div className="property-spec-label">{locale === 'ar' ? 'عدد الغرف' : 'Bedrooms'}</div>
+                  <div className="property-spec-val">
                     {property.rooms_?.length || property.bedrooms} {locale === 'ar' ? 'غرف' : 'Rooms'}
                   </div>
                 </div>
 
-                <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {locale === 'ar' ? 'دورات المياه' : 'Bathrooms'}
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
+                <div className="property-spec-item">
+                  <div className="property-spec-label">{locale === 'ar' ? 'دورات المياه' : 'Bathrooms'}</div>
+                  <div className="property-spec-val">
                     {property.bathrooms || 1} {locale === 'ar' ? 'حمامات' : 'Baths'}
                   </div>
                 </div>
 
-                <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {locale === 'ar' ? 'الطابق / الدور' : 'Floor'}
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
+                <div className="property-spec-item">
+                  <div className="property-spec-label">{locale === 'ar' ? 'الطابق / الدور' : 'Floor'}</div>
+                  <div className="property-spec-val">
                     {property.floor !== undefined && property.floor !== '' ? (locale === 'ar' ? `الدور ${property.floor}` : `Floor ${property.floor}`) : (locale === 'ar' ? 'طابق ملائم' : 'Standard')}
                   </div>
                 </div>
 
-                <div style={{ padding: '0.9rem 1rem', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {locale === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}
-                  </div>
-                  <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '0.95rem' }}>
+                <div className="property-spec-item">
+                  <div className="property-spec-label">{locale === 'ar' ? 'المساحة الإجمالية' : 'Total Area'}</div>
+                  <div className="property-spec-val">
                     {property.area ? `${property.area} ${locale === 'ar' ? 'م²' : 'sqm'}` : (locale === 'ar' ? 'مساحة مناسبة' : 'Ample Space')}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* ── Utilities & Bills Inclusions Card ─────────────────────────── */}
-            <div
-              style={{
-                backgroundColor: '#F0FDF4',
-                border: '1px solid #BBF7D0',
-                borderRadius: '16px',
-                padding: '1.25rem',
-                marginBottom: '1.75rem',
-              }}
-            >
-              <h4 style={{ fontSize: '1rem', fontWeight: 800, color: '#166534', margin: '0 0 0.85rem' }}>
-                {locale === 'ar' ? 'المرافق والفواتير المشمولة في الإيجار' : 'Utilities & Inclusions in Rent'}
-              </h4>
-              <div className="property-inclusions-grid">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.electricityIncluded ? '#15803D' : '#64748B' }}>
-                  <span style={{ fontWeight: 800 }}>{property.electricityIncluded ? '✓' : '✕'}</span>
-                  <span>{property.electricityIncluded ? (locale === 'ar' ? 'الكهرباء مشمولة في الإيجار' : 'Electricity Included') : (locale === 'ar' ? 'الكهرباء غير مشمولة (على المستأجر)' : 'Electricity Not Included')}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.waterIncluded ? '#15803D' : '#64748B' }}>
-                  <span style={{ fontWeight: 800 }}>{property.waterIncluded ? '✓' : '✕'}</span>
-                  <span>{property.waterIncluded ? (locale === 'ar' ? 'المياه مشمولة في الإيجار' : 'Water Included') : (locale === 'ar' ? 'المياه غير مشمولة (على المستأجر)' : 'Water Not Included')}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', fontWeight: 600, color: property.internetIncluded ? '#15803D' : '#64748B' }}>
-                  <span style={{ fontWeight: 800 }}>{property.internetIncluded ? '✓' : '✕'}</span>
-                  <span>{property.internetIncluded ? (locale === 'ar' ? 'إنترنت WiFi عالي السرعة مشمول' : 'High-speed WiFi Included') : (locale === 'ar' ? 'الإنترنت غير مشمول' : 'Internet Not Included')}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Description */}
+            {/* ── Section 6: Description ────────────────────────────────────── */}
             {property.description && (
-              <div style={{ marginBottom: '1.75rem' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.65rem' }}>
+              <div className="property-section-card" style={{ marginBottom: '1.75rem' }}>
+                <h3 className="property-section-title" style={{ margin: '0 0 0.75rem' }}>
                   {locale === 'ar' ? 'عن السكن' : 'About Property'}
                 </h3>
-                <p style={{ color: 'var(--color-text-secondary)', lineHeight: 1.8, fontSize: '0.95rem', margin: 0, whiteSpace: 'pre-line' }}>
+                <p style={{ color: 'var(--dary-text)', lineHeight: 1.8, fontSize: '0.95rem', margin: 0, whiteSpace: 'pre-line' }}>
                   {typeof (property.description as any) === 'object' && property.description !== null
                     ? ((property.description as any)[locale] || (property.description as any).ar || (property.description as any).en || JSON.stringify(property.description))
                     : String(property.description)}
@@ -2135,7 +1886,7 @@ export default function PropertyDetailsPage() {
               </div>
             )}
 
-            {/* Rooms list */}
+            {/* ── Section 7: Room Details & Pricing ─────────────────────────── */}
             {Array.isArray(property.rooms_) && property.rooms_.length > 0 && (
               <div style={{ marginBottom: '1.75rem' }}>
                 {/* Notice for tenant who has prior bookings for this property */}
@@ -2215,17 +1966,17 @@ export default function PropertyDetailsPage() {
                           border: isUserBookedInThisRoom
                             ? '2px solid #3B82F6'
                             : selectedRoomId === room.id
-                            ? '2px solid var(--color-blue)'
+                            ? '2px solid var(--dary-navy)'
                             : '1px solid #E2E8F0',
                           backgroundColor: isUserBookedInThisRoom
                             ? '#F8FAFF'
                             : selectedRoomId === room.id
-                            ? '#EFF6FF'
+                            ? '#F0F4F8'
                             : '#F8FAFC',
                           display: 'flex',
                           flexDirection: 'column',
                           justifyContent: 'space-between',
-                          boxShadow: selectedRoomId === room.id ? '0 4px 14px rgba(47, 107, 255, 0.15)' : 'none',
+                          boxShadow: selectedRoomId === room.id ? '0 4px 14px rgba(11, 42, 74, 0.12)' : 'none',
                           transition: 'all 0.2s ease',
                           position: 'relative',
                         }}
@@ -2312,7 +2063,7 @@ export default function PropertyDetailsPage() {
                           <div style={{ fontWeight: 800, color: 'var(--color-navy)', fontSize: '1rem', marginBottom: '0.35rem' }}>
                             {roomName}
                           </div>
-                          <div style={{ color: 'var(--color-blue)', fontWeight: 900, fontSize: '1.15rem', marginBottom: '0.55rem' }}>
+                          <div style={{ color: 'var(--dary-navy)', fontWeight: 900, fontSize: '1.15rem', marginBottom: '0.55rem' }}>
                             {room.pricePerBed} {property.currency} <span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--color-text-muted)' }}>/ {locale === 'ar' ? 'سرير شهرياً' : 'bed/mo'}</span>
                           </div>
 
@@ -2408,9 +2159,9 @@ export default function PropertyDetailsPage() {
                               minHeight: '44px',
                               padding: '0.6rem',
                               borderRadius: '8px',
-                              backgroundColor: selectedRoomId === room.id ? 'var(--color-blue)' : '#FFFFFF',
-                              color: selectedRoomId === room.id ? '#FFFFFF' : 'var(--color-navy)',
-                              border: '1px solid ' + (selectedRoomId === room.id ? 'var(--color-blue)' : '#CBD5E1'),
+                              backgroundColor: selectedRoomId === room.id ? 'var(--dary-navy)' : '#FFFFFF',
+                              color: selectedRoomId === room.id ? '#FFFFFF' : 'var(--dary-navy)',
+                              border: '1px solid ' + (selectedRoomId === room.id ? 'var(--dary-navy)' : '#CBD5E1'),
                               fontWeight: 700,
                               fontSize: '0.85rem',
                               cursor: 'pointer',
@@ -2427,11 +2178,11 @@ export default function PropertyDetailsPage() {
               </div>
             )}
 
-            {/* Amenities */}
+            {/* ── Section 8: Amenities & Facilities ─────────────────────────── */}
             {Array.isArray(property.amenities) && property.amenities.length > 0 && (
-              <div style={{ marginBottom: '1.75rem' }}>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--color-navy)', marginBottom: '0.85rem' }}>
-                  {locale === 'ar' ? 'المرافق والخدمات المشمولة' : 'Amenities & Inclusions'}
+              <div className="property-section-card" style={{ marginBottom: '1.75rem' }}>
+                <h3 className="property-section-title" style={{ margin: '0 0 0.85rem' }}>
+                  {locale === 'ar' ? 'المرافق والخدمات المشمولة' : 'Amenities & Facilities'}
                 </h3>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.55rem' }}>
                   {property.amenities.map((item: any, i: number) => {
@@ -2445,17 +2196,17 @@ export default function PropertyDetailsPage() {
                         style={{
                           padding: '0.45rem 0.95rem',
                           borderRadius: '10px',
-                          backgroundColor: '#EFF6FF',
-                          color: 'var(--color-blue)',
+                          backgroundColor: '#F1F5F9',
+                          color: 'var(--dary-navy)',
                           fontSize: '0.88rem',
                           fontWeight: 700,
-                          border: '1px solid #DBEAFE',
+                          border: '1px solid #E2E8F0',
                           display: 'inline-flex',
                           alignItems: 'center',
                           gap: '6px',
                         }}
                       >
-                        <span>✓</span>
+                        <span style={{ color: 'var(--dary-gold)' }}>✓</span>
                         <span>{label}</span>
                       </span>
                     );
@@ -2489,8 +2240,185 @@ export default function PropertyDetailsPage() {
               </div>
             )}
 
-            {/* ── Student Reviews & Ratings Section ───────────────────────────── */}
-            <div style={{ marginTop: '2.5rem', marginBottom: '2rem' }}>
+            {/* ── Section 9: Bills & Included Utilities ─────────────────────── */}
+            <div className="property-section-card" style={{ marginBottom: '1.75rem' }}>
+              <h3 className="property-section-title" style={{ margin: '0 0 0.85rem' }}>
+                {locale === 'ar' ? 'الفواتير والخدمات المشمولة' : 'Bills & Included Utilities'}
+              </h3>
+              <div className="property-inclusions-grid">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 600, color: property.electricityIncluded ? '#15803D' : '#64748B' }}>
+                  <span style={{ fontWeight: 800 }}>{property.electricityIncluded ? '✓' : '✕'}</span>
+                  <span>{property.electricityIncluded ? (locale === 'ar' ? 'الكهرباء مشمولة في الإيجار' : 'Electricity Included') : (locale === 'ar' ? 'الكهرباء غير مشمولة (على المستأجر)' : 'Electricity Not Included')}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 600, color: property.waterIncluded ? '#15803D' : '#64748B' }}>
+                  <span style={{ fontWeight: 800 }}>{property.waterIncluded ? '✓' : '✕'}</span>
+                  <span>{property.waterIncluded ? (locale === 'ar' ? 'المياه مشمولة في الإيجار' : 'Water Included') : (locale === 'ar' ? 'المياه غير مشمولة (على المستأجر)' : 'Water Not Included')}</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.88rem', fontWeight: 600, color: property.internetIncluded ? '#15803D' : '#64748B' }}>
+                  <span style={{ fontWeight: 800 }}>{property.internetIncluded ? '✓' : '✕'}</span>
+                  <span>{property.internetIncluded ? (locale === 'ar' ? 'إنترنت WiFi عالي السرعة مشمول' : 'High-speed WiFi Included') : (locale === 'ar' ? 'الإنترنت غير مشمول' : 'Internet Not Included')}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Section 10: Approximate Location & Map ───────────────────── */}
+            <div className="property-section-card" style={{ marginBottom: '1.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h3 className="property-section-title" style={{ margin: 0 }}>
+                  {locale === 'ar' ? 'الموقع التقريبي والخريطة' : 'Approximate Location & Map'}
+                </h3>
+                <span style={{ fontSize: '0.8rem', color: 'var(--dary-muted)', fontWeight: 600 }}>
+                  {locale === 'ar' ? 'نطاق تقريبي 1 كم لحفظ الخصوصية' : 'Approximate 1 km radius for privacy'}
+                </span>
+              </div>
+
+              {/* Detailed Location & Proximity Box */}
+              {(() => {
+                const effectiveAddress =
+                  resolvedMapAddress ||
+                  resolvedRev?.address ||
+                  formatCleanAddress(
+                    {
+                      address: property.address,
+                      district: property.district,
+                      city: property.city,
+                      governorate: property.governorate,
+                      nearestUniversity: property.nearestUniversity,
+                      location: property.location,
+                      title: property.title,
+                    },
+                    null,
+                    locale
+                  ) ||
+                  property.address;
+
+                const normUniv = normalizeUniversityName(
+                  resolvedRev?.nearestUniversity || property.nearestUniversity,
+                  property.latitude,
+                  property.longitude,
+                  locale
+                );
+                const effectiveUnivName = resolvedRev?.nearestUniversity || normUniv.name || property.nearestUniversity;
+                const effectiveUnivDist =
+                  resolvedRev?.distanceToUniversityKm !== undefined
+                    ? resolvedRev.distanceToUniversityKm
+                    : normUniv.distanceKm !== undefined
+                    ? normUniv.distanceKm
+                    : property.distanceToUniversity;
+
+                if (!effectiveAddress && !effectiveUnivName) return null;
+
+                return (
+                  <div
+                    style={{
+                      backgroundColor: '#F8FAFC',
+                      border: '1px solid #E2E8F0',
+                      borderRadius: '14px',
+                      padding: '1rem 1.15rem',
+                      marginBottom: '1.25rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.6rem',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.92rem', color: 'var(--dary-navy)', flexWrap: 'wrap' }}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--dary-navy)', flexShrink: 0 }}>
+                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                        <circle cx="12" cy="10" r="3" />
+                      </svg>
+                      <span style={{ fontWeight: 800 }}>
+                        {(isThisOwnerProperty || isAdmin)
+                          ? (locale === 'ar' ? 'العنوان المسجل (خاص بالإدارة والمالك):' : 'Registered Address (Owner/Admin):')
+                          : (locale === 'ar' ? 'الموقع العام والمنطقة:' : 'General Location & District:')}
+                      </span>
+                      <span style={{ color: 'var(--dary-text)', fontWeight: 700 }}>
+                        {(isThisOwnerProperty || isAdmin)
+                          ? effectiveAddress
+                          : ([property.district, property.city].filter(Boolean).join(', ') || property.address || displayLocation)}
+                      </span>
+                    </div>
+
+                    {!isThisOwnerProperty && !isAdmin && (
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '0.55rem 0.85rem',
+                          borderRadius: '10px',
+                          backgroundColor: '#FEF3C7',
+                          border: '1px solid #FDE68A',
+                          color: '#92400E',
+                          fontSize: '0.78rem',
+                          fontWeight: 600,
+                          lineHeight: 1.45,
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: '#B45309' }}>
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        </svg>
+                        <span>
+                          {locale === 'ar'
+                            ? 'يُعرض موقع العقار بنطاق تقريبي (نصف قطر 1 كم) لحفظ خصوصية وأمان السكن. يتم تزويدك بالعنوان الدقيق ورقم المبنى فور تأكيد الحجز.'
+                            : 'Property location is displayed within an approximate 1 km radius to protect housing privacy. The exact building address is provided upon booking confirmation.'}
+                        </span>
+                      </div>
+                    )}
+
+                    {effectiveUnivName && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', fontSize: '0.9rem', color: '#163B5C', flexWrap: 'wrap' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, color: 'var(--dary-navy)' }}>
+                          <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                          <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                        </svg>
+                        <span style={{ fontWeight: 700 }}>{locale === 'ar' ? 'الجامعة الأقرب:' : 'Nearest University:'}</span>
+                        <span style={{ fontWeight: 800, color: 'var(--dary-navy)' }}>{effectiveUnivName}</span>
+                        {effectiveUnivDist !== undefined && (
+                          <span style={{ backgroundColor: '#E2E8F0', color: 'var(--dary-navy)', padding: '2px 10px', borderRadius: '999px', fontSize: '0.8rem', fontWeight: 800 }}>
+                            {effectiveUnivDist} {locale === 'ar' ? 'كم' : 'km'}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
+              <InteractiveMap
+                latitude={property.latitude}
+                longitude={property.longitude}
+                locationContext={{
+                  id: property.id,
+                  address: (isThisOwnerProperty || isAdmin) ? property.address : undefined,
+                  district: property.district,
+                  city: property.city,
+                  governorate: property.governorate,
+                  nearestUniversity: property.nearestUniversity,
+                  location: property.location,
+                  title: property.title,
+                }}
+                title={displayTitle}
+                subtitle={(isThisOwnerProperty || isAdmin) ? (resolvedMapAddress || displayLocation) : ([property.district, property.city].filter(Boolean).join(', ') || displayLocation)}
+                height="360px"
+                editable={false}
+                showNearby={true}
+                initialRadiusKm={1}
+                hideRouteControls={true}
+                disableUserLocation={true}
+                approximateLocation={true}
+                showCoordinates={false}
+                autoDetectOnMount={false}
+                syncProfileOnDetect={false}
+                locale={locale}
+                onAddressResolved={(cleanAddr, rev) => {
+                  if (cleanAddr) setResolvedMapAddress(cleanAddr);
+                  if (rev) setResolvedRev(rev);
+                }}
+              />
+            </div>
+
+            {/* ── Section 11: Student Reviews & Ratings ─────────────────────── */}
+            <div className="property-section-card" style={{ marginTop: '1rem', marginBottom: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: 'var(--color-navy)', margin: 0 }}>
                   {locale === 'ar' ? 'تقييمات وتجارب الطلاب' : 'Student Reviews & Ratings'}
@@ -2516,7 +2444,7 @@ export default function PropertyDetailsPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                    <div style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--color-blue)', lineHeight: 1 }}>
+                    <div style={{ fontSize: '2.4rem', fontWeight: 900, color: 'var(--dary-navy)', lineHeight: 1 }}>
                       {reviewsMeta.avgPropertyRating.toFixed(1)}
                     </div>
                     <div>
@@ -2666,7 +2594,7 @@ export default function PropertyDetailsPage() {
             <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--color-text-muted)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '0.35rem' }}>
               {locale === 'ar' ? 'السعر الشهري' : 'Monthly Price'}
             </div>
-            <div style={{ fontSize: '2.15rem', fontWeight: 900, color: 'var(--color-blue)', lineHeight: 1, marginBottom: '0.35rem' }}>
+            <div style={{ fontSize: '2.15rem', fontWeight: 900, color: 'var(--dary-navy)', lineHeight: 1, marginBottom: '0.35rem' }}>
               {Number(property.price || 0).toLocaleString()}
             </div>
             <div style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
@@ -2876,14 +2804,14 @@ export default function PropertyDetailsPage() {
                       minHeight: '48px',
                       padding: '0.9rem',
                       borderRadius: '12px',
-                      background: 'var(--color-blue)',
+                      background: 'var(--dary-navy)',
                       color: '#fff',
                       fontWeight: 800,
                       fontSize: '1rem',
                       border: 'none',
                       cursor: 'pointer',
                       marginBottom: '0.75rem',
-                      boxShadow: '0 4px 14px rgba(47, 107, 255, 0.35)',
+                      boxShadow: '0 4px 14px rgba(11, 42, 74, 0.25)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -2910,7 +2838,7 @@ export default function PropertyDetailsPage() {
                     padding: '0.75rem',
                     borderRadius: '10px',
                     background: 'transparent',
-                    color: isFavorite ? '#EF4444' : 'var(--color-navy)',
+                    color: isFavorite ? '#EF4444' : 'var(--dary-navy)',
                     fontWeight: 700,
                     fontSize: '0.9rem',
                     border: '1px solid rgba(11,42,74,0.15)',
@@ -2960,6 +2888,20 @@ export default function PropertyDetailsPage() {
                   </svg>
                   <span>{locale === 'ar' ? 'إبلاغ عن هذا العقار' : 'Report this property'}</span>
                 </button>
+
+                {/* Safe Booking Guarantee Card */}
+                <div style={{ marginTop: '1.25rem', padding: '0.85rem', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#B69F77" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    <path d="m9 12 2 2 4-4"/>
+                  </svg>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--dary-muted)', lineHeight: 1.45 }}>
+                    <strong style={{ color: 'var(--dary-navy)', display: 'block', marginBottom: '2px' }}>
+                      {locale === 'ar' ? 'ضمان حجز داري الموثوق' : 'DARY Verified Booking'}
+                    </strong>
+                    {locale === 'ar' ? 'معاينة معتمدة، حماية المدفوعات، ودعم مباشر طوال فترة إقامتك.' : 'Verified listing, payment security, and direct student support.'}
+                  </div>
+                </div>
               </>
             )}
           </div>
@@ -3235,7 +3177,7 @@ export default function PropertyDetailsPage() {
                     style={{
                       padding: '0.65rem 1.25rem',
                       borderRadius: '8px',
-                      backgroundColor: 'var(--color-blue)',
+                      backgroundColor: 'var(--dary-navy)',
                       color: '#FFFFFF',
                       fontWeight: 700,
                       fontSize: '0.85rem',
@@ -3454,7 +3396,7 @@ export default function PropertyDetailsPage() {
                         activeRoom.status === 'FULL' ||
                         bedsRequested > Number(activeRoom.availableBeds || 0)
                           ? '#94A3B8'
-                          : 'var(--color-blue)',
+                          : 'var(--dary-navy)',
                       color: '#FFFFFF',
                       fontWeight: 800,
                       fontSize: '0.9rem',
@@ -3467,7 +3409,7 @@ export default function PropertyDetailsPage() {
                           ? 'not-allowed'
                           : 'pointer',
                       border: 'none',
-                      boxShadow: '0 4px 12px rgba(47, 107, 255, 0.25)',
+                      boxShadow: '0 4px 12px rgba(11, 42, 74, 0.25)',
                     }}
                   >
                     {bookingLoading
@@ -3692,6 +3634,35 @@ export default function PropertyDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* ── Fixed Bottom Floating Bar (Mobile <= 768px) ────────────────── */}
+      <div className="property-mobile-bottom-bar" aria-label="Mobile booking action">
+        <div className="property-mobile-bottom-bar-inner">
+          <div className="property-mobile-bottom-price">
+            <span className="property-mobile-bottom-val">{Number(property.price || 0).toLocaleString()} {property.currency}</span>
+            <span className="property-mobile-bottom-period">/ {locale === 'ar' ? 'شهرياً' : 'mo'}</span>
+          </div>
+          {!isFullyBooked && !isAdmin && !(isOwner && isThisOwnerProperty) ? (
+            <button
+              type="button"
+              onClick={handleOpenBookingModal}
+              className="property-mobile-bottom-cta"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                <line x1="16" y1="2" x2="16" y2="6"/>
+                <line x1="8" y1="2" x2="8" y2="6"/>
+                <line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              <span>{locale === 'ar' ? 'احجز الآن' : 'Book Now'}</span>
+            </button>
+          ) : isFullyBooked ? (
+            <div className="property-mobile-bottom-booked">
+              {locale === 'ar' ? 'ممتلئ بالكامل' : 'Fully Booked'}
+            </div>
+          ) : null}
+        </div>
+      </div>
     </main>
   );
 }

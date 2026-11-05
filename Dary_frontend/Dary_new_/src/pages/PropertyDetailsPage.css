@@ -1,86 +1,537 @@
 /* ==========================================================================
-   Property Details Page Styles - DARY Real Estate Mobile-First UI
+   Property Details Page Styles - DARY Real Estate Official Navy Theme
+   Mobile-First, Responsive & Minimalist Architecture
    ========================================================================== */
 
+:root {
+  --dary-navy: #0B2A4A;
+  --dary-navy-light: #163B5C;
+  --dary-navy-hover: #123352;
+  --dary-navy-subtle: #EEF3F8;
+  --dary-gold: #B69F77;
+  --dary-gold-subtle: #FDF9F2;
+  --dary-white: #FFFFFF;
+  --dary-bg: #F7F8FA;
+  --dary-text: #263445;
+  --dary-muted: #718096;
+  --dary-border: #E2E8F0;
+  --dary-border-focus: #CBD5E1;
+  --dary-card-bg: #FFFFFF;
+}
+
+/* Page Root Scoped Variables */
 .property-details-main {
-  padding-top: 7rem;
-  padding-bottom: 4rem;
-  min-height: 80vh;
+  --color-blue: #0B2A4A; /* Force legacy blue references to DARY Navy */
+  --color-navy: #0B2A4A;
+  padding-top: 6.25rem;
+  padding-bottom: 5rem;
+  min-height: 85vh;
+  background-color: var(--dary-bg);
+  color: var(--dary-text);
   overflow-x: hidden;
   max-width: 100vw;
+  box-sizing: border-box;
 }
 
 .property-details-container {
   width: 100%;
-  max-width: 1140px;
+  max-width: 1200px;
   margin-inline: auto;
   padding-inline: 1.5rem;
   box-sizing: border-box;
 }
 
-/* Hero Gallery Viewport */
-.property-gallery-viewport {
-  position: relative;
-  border-radius: 24px;
-  overflow: hidden;
-  aspect-ratio: 16 / 9;
-  min-height: 320px;
-  max-height: 520px;
-  background-color: #071829;
-  box-shadow: 0 12px 36px rgba(11, 42, 74, 0.16);
+/* ── 1. Breadcrumbs Trail ────────────────────────────────────────────────── */
+.property-breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--dary-muted);
+  margin-bottom: 1.25rem;
+  line-height: 1.5;
+}
+
+.property-breadcrumbs a {
+  color: var(--dary-muted);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 150ms ease;
+}
+
+.property-breadcrumbs a:hover {
+  color: var(--dary-navy);
+}
+
+.property-breadcrumbs-sep {
+  color: #CBD5E1;
+  font-size: 0.75rem;
   user-select: none;
 }
 
-/* Two-Column Layout (Content + Sticky Sidebar) */
+.property-breadcrumbs-current {
+  color: var(--dary-navy);
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 340px;
+}
+
+/* ── 2. Header & Title Block (Section 2) ─────────────────────────────────── */
+.property-header-block {
+  margin-bottom: 1.5rem;
+}
+
+.property-badges-wrap,
+.property-badges-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.property-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.property-badge--verified,
+.property-badge-verified {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.property-badge--pending,
+.property-badge-pending {
+  background-color: #FEF3C7;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+
+.property-badge--luxury,
+.property-badge-luxury {
+  background-color: #FEF9C3;
+  color: #854D0E;
+  border: 1px solid #FEF08A;
+}
+
+.property-badge--standard,
+.property-badge-standard {
+  background-color: #F1F5F9;
+  color: var(--dary-navy);
+  border: 1px solid #E2E8F0;
+}
+
+.property-badge--gender,
+.property-badge-gender {
+  background-color: #EEF3F8;
+  color: var(--dary-navy);
+  border: 1px solid #D5E2EE;
+}
+
+.property-badge--student,
+.property-badge-student {
+  background-color: #F8FAFC;
+  color: var(--dary-navy);
+  border: 1px solid #E2E8F0;
+}
+
+.property-badge--vacant,
+.property-badge-vacant {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.property-badge--booked,
+.property-badge-booked {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+.property-main-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--dary-navy);
+  margin: 0 0 0.55rem;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+
+.property-location-bar,
+.property-location-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  font-size: 0.95rem;
+  color: var(--dary-muted);
+}
+
+.property-location-text {
+  color: var(--dary-muted);
+  font-weight: 500;
+}
+
+.property-location-pin {
+  color: var(--dary-navy);
+  flex-shrink: 0;
+}
+
+.property-univ-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background-color: #EEF3F8;
+  color: var(--dary-navy);
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* ── 3. Photo Gallery Viewport (Section 3) ───────────────────────────────── */
+.property-gallery-section {
+  margin-bottom: 2.25rem;
+}
+
+.property-gallery-viewport {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  min-height: 280px;
+  max-height: 520px;
+  background-color: #071829;
+  box-shadow: 0 10px 30px rgba(11, 42, 74, 0.08);
+  user-select: none;
+}
+
+.property-gallery-thumbs-strip {
+  display: flex;
+  gap: 0.65rem;
+  overflow-x: auto;
+  padding: 0.75rem 0.2rem 0.4rem;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
+
+.property-gallery-thumbs-strip::-webkit-scrollbar {
+  height: 6px;
+}
+
+.property-gallery-thumbs-strip::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 4px;
+}
+
+.property-thumb-item {
+  flex-shrink: 0;
+  width: 92px;
+  height: 64px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  padding: 0;
+  background: #000;
+  cursor: pointer;
+  transition: border-color 150ms ease, transform 150ms ease;
+  position: relative;
+}
+
+.property-thumb-item--active {
+  border-color: var(--dary-navy) !important;
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(11, 42, 74, 0.2);
+}
+
+/* ── 4. Main Two-Column Layout (Desktop) ─────────────────────────────────── */
 .property-details-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 2rem;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 2.25rem;
   align-items: start;
 }
 
+.property-details-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.85rem;
+}
+
+/* ── Sticky Sidebar (Desktop Booking Card) ───────────────────────────────── */
 .property-details-sidebar {
   position: sticky;
-  top: 6rem;
-  border: 1px solid rgba(11, 42, 74, 0.1);
+  top: 5.75rem;
+  border: 1px solid var(--dary-border);
   border-radius: 20px;
-  padding: 1.65rem;
+  padding: 1.75rem;
   background: #FFFFFF;
-  box-shadow: 0 6px 24px rgba(11, 42, 74, 0.08);
+  box-shadow: 0 8px 28px rgba(11, 42, 74, 0.06);
   box-sizing: border-box;
 }
 
-/* Mobile-only booking card (Hidden on desktop >= 992px) */
+.property-sidebar-price-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dary-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+.property-sidebar-price-value {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--dary-navy);
+  line-height: 1.1;
+  margin-bottom: 0.4rem;
+}
+
+.property-sidebar-price-cur {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--dary-muted);
+}
+
+.property-sidebar-deposit {
+  font-size: 0.85rem;
+  color: var(--dary-muted);
+  margin-bottom: 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+/* ── Generic Section Card Style (Clean, Minimal, Professional) ──────────── */
+.property-section-card {
+  background-color: #FFFFFF;
+  border: 1px solid var(--dary-border);
+  border-radius: 16px;
+  padding: 1.4rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.property-section-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--dary-navy);
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* ── 5. Key Specifications Grid (Section 5) ──────────────────────────────── */
+.property-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.85rem;
+}
+
+.property-spec-tile {
+  padding: 0.95rem 1rem;
+  border-radius: 12px;
+  background-color: #F8FAFC;
+  border: 1px solid var(--dary-border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  box-sizing: border-box;
+}
+
+.property-spec-label {
+  font-size: 0.75rem;
+  color: var(--dary-muted);
+  font-weight: 600;
+}
+
+.property-spec-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--dary-navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 6. Description (Section 6) ─────────────────────────────────────────── */
+.property-description-text {
+  color: var(--dary-text);
+  line-height: 1.8;
+  font-size: 0.95rem;
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* ── 7. Room Details & Pricing (Section 7) ───────────────────────────────── */
+.property-rooms-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.85rem;
+}
+
+.property-room-card {
+  padding: 1.15rem 1.25rem;
+  border-radius: 14px;
+  background: #FFFFFF;
+  border: 1.5px solid var(--dary-border);
+  cursor: pointer;
+  transition: border-color 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  box-sizing: border-box;
+}
+
+.property-room-card--selected {
+  border-color: var(--dary-navy);
+  background-color: #FAFBFD;
+  box-shadow: 0 0 0 3px rgba(11, 42, 74, 0.08);
+}
+
+.property-room-price {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: var(--dary-navy);
+}
+
+/* ── 8. Amenities & Facilities (Section 8) ───────────────────────────────── */
+.property-amenities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.65rem;
+}
+
+.property-amenity-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  background-color: #F8FAFC;
+  border: 1px solid var(--dary-border);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--dary-text);
+}
+
+.property-amenity-check {
+  color: #10B981;
+  font-weight: 800;
+}
+
+/* ── 9. Bills & Inclusions (Section 9) ───────────────────────────────────── */
+.property-inclusions-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.property-inclusion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+/* ── 10. Approximate Location & Map (Section 10) ─────────────────────────── */
+.property-location-box {
+  background-color: #F8FAFC;
+  border: 1px solid var(--dary-border);
+  border-radius: 16px;
+  padding: 1.15rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── 11. Reviews & Ratings (Section 11) ──────────────────────────────────── */
+.property-reviews-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+/* ── DARY Navy Action Buttons ────────────────────────────────────────────── */
+.property-primary-btn {
+  width: 100%;
+  min-height: 48px;
+  background-color: var(--dary-navy);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(11, 42, 74, 0.22);
+  transition: background-color 150ms ease, transform 100ms ease;
+  user-select: none;
+}
+
+.property-primary-btn:hover:not(:disabled) {
+  background-color: var(--dary-navy-light);
+}
+
+.property-primary-btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.property-primary-btn:disabled {
+  background-color: #94A3B8;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.property-secondary-btn {
+  width: 100%;
+  min-height: 44px;
+  background-color: #FFFFFF;
+  color: var(--dary-navy);
+  border: 1.5px solid var(--dary-border);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 150ms ease;
+}
+
+.property-secondary-btn:hover {
+  background-color: #F8FAFC;
+  border-color: var(--dary-navy);
+}
+
+/* ── Mobile Prominent Price & Booking Card (Section 4 on Mobile) ─────────── */
 .property-mobile-booking-card {
   display: none;
 }
 
-/* Responsive Specs & Inclusions Grids */
-.property-specs-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 0.85rem;
+/* ── Floating Mobile Bottom Bar ─────────────────────────────────────────── */
+.property-mobile-bottom-bar {
+  display: none;
 }
 
-.property-inclusions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 0.75rem;
-}
-
-.property-pricing-breakdown-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
-}
-
-.property-reviews-summary-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-/* Modals */
+/* ── Modal Dialogs ──────────────────────────────────────────────────────── */
 .property-modal-dialog {
   background-color: #FFFFFF;
   border-radius: 20px;
@@ -105,7 +556,9 @@
   gap: 0.5rem;
 }
 
-/* ── Responsive Breakpoints ──────────────────────────────────────────────── */
+/* ==========================================================================
+   Responsive Breakpoints - Mobile First Calibration
+   ========================================================================== */
 
 /* Tablet & Mobile Breakpoint (<= 991px) */
 @media (max-width: 991px) {
@@ -114,24 +567,22 @@
     gap: 1.5rem;
   }
 
+  /* Hide Desktop Sidebar on Mobile to Prevent Duplicate Cards! */
   .property-details-sidebar {
-    position: static;
-    top: auto;
-    margin-top: 1rem;
-    padding: 1.5rem;
+    display: none;
   }
 
-  /* Mobile Prominent Price & Booking Card */
+  /* Show Dedicated Mobile Booking Card right under Gallery */
   .property-mobile-booking-card {
     display: flex;
     flex-direction: column;
     background: #FFFFFF;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--dary-border);
     border-radius: 16px;
     padding: 1.25rem;
-    margin-bottom: 1.5rem;
-    box-shadow: 0 4px 18px rgba(11, 42, 74, 0.06);
+    box-shadow: 0 4px 18px rgba(11, 42, 74, 0.05);
     box-sizing: border-box;
+    margin-bottom: 0.5rem;
   }
 
   .property-mobile-price-row {
@@ -146,88 +597,74 @@
   .property-mobile-price-label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #64748B;
+    color: var(--dary-muted);
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.04em;
     margin-bottom: 2px;
   }
 
   .property-mobile-price-value {
     font-size: 1.85rem;
     font-weight: 900;
-    color: var(--color-blue);
+    color: var(--dary-navy);
     line-height: 1;
   }
 
   .property-mobile-price-cur {
     font-size: 0.85rem;
     font-weight: 600;
-    color: #64748B;
+    color: var(--dary-muted);
   }
 
   .property-mobile-deposit-pill {
     background: #F8FAFC;
-    border: 1px solid #E2E8F0;
+    border: 1px solid var(--dary-border);
     border-radius: 999px;
-    padding: 0.4rem 0.85rem;
+    padding: 0.35rem 0.85rem;
     font-size: 0.8rem;
     font-weight: 700;
-    color: var(--color-navy);
+    color: var(--dary-navy);
   }
 
-  .property-mobile-book-btn {
-    width: 100%;
-    min-height: 48px;
-    background: var(--color-blue);
-    color: #FFFFFF;
-    border: none;
-    border-radius: 12px;
-    font-weight: 800;
-    font-size: 1rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    box-shadow: 0 4px 14px rgba(47, 107, 255, 0.35);
-    transition: transform 0.15s ease, background-color 0.15s ease;
-  }
-
-  .property-mobile-book-btn:active {
-    transform: scale(0.98);
-  }
-
-  .property-mobile-booked-banner {
-    background: #FEE2E2;
-    border: 1px solid #FCA5A5;
-    color: #991B1B;
-    border-radius: 10px;
-    padding: 0.75rem 1rem;
-    text-align: center;
-    font-size: 0.88rem;
+  .property-specs-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
-/* Mobile Devices (<= 768px) */
+/* Tablet Portrait & Mobile (<= 768px) */
 @media (max-width: 768px) {
   .property-details-main {
     padding-top: 5.5rem;
-    padding-bottom: 3rem;
+    padding-bottom: 5.5rem; /* Room for mobile sticky bottom bar */
   }
 
   .property-details-container {
     padding-inline: 1rem;
   }
 
-  .property-gallery-viewport {
-    border-radius: 18px;
-    min-height: 220px;
-    max-height: 340px;
+  .property-main-title {
+    font-size: 1.6rem;
   }
 
-  .property-details-sidebar {
+  .property-gallery-viewport {
     border-radius: 16px;
-    padding: 1.25rem;
+    min-height: 220px;
+    max-height: 360px;
+  }
+
+  .property-thumb-item {
+    width: 80px;
+    height: 56px;
+    border-radius: 10px;
+  }
+
+  .property-specs-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.65rem;
+  }
+
+  .property-inclusions-grid {
+    grid-template-columns: 1fr;
   }
 
   .property-modal-dialog {
@@ -239,39 +676,94 @@
     grid-template-columns: 1fr;
     gap: 0.75rem;
   }
+
+  /* Sleek Floating Bottom Bar on Mobile for Seamless Booking */
+  .property-mobile-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 90;
+    background-color: #FFFFFF;
+    border-top: 1px solid var(--dary-border);
+    padding: 0.75rem 1.25rem calc(0.75rem + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -4px 18px rgba(11, 42, 74, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .property-mobile-bottom-price-val {
+    font-size: 1.35rem;
+    font-weight: 900;
+    color: var(--dary-navy);
+    line-height: 1;
+  }
+
+  .property-mobile-bottom-price-sub {
+    font-size: 0.75rem;
+    color: var(--dary-muted);
+    font-weight: 600;
+  }
+
+  .property-mobile-bottom-btn {
+    min-height: 44px;
+    padding: 0 1.5rem;
+    background-color: var(--dary-navy);
+    color: #FFFFFF;
+    border: none;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
 }
 
-/* Standard Mobile (<= 480px, including 440px and 390px) */
+/* Compact Mobile (<= 480px, including 440px, 414px, 390px, 375px) */
 @media (max-width: 480px) {
   .property-details-main {
     padding-top: 5rem;
-    padding-bottom: 2.25rem;
   }
 
   .property-details-container {
     padding-inline: 0.85rem;
   }
 
+  .property-main-title {
+    font-size: 1.35rem;
+    line-height: 1.35;
+  }
+
   .property-gallery-viewport {
     border-radius: 14px;
-    min-height: 190px;
-    max-height: 260px;
+    min-height: 200px;
+    max-height: 280px;
   }
 
-  .property-details-layout h1 {
-    font-size: 1.45rem !important;
+  .property-section-card {
+    padding: 1.15rem 1rem;
+    border-radius: 14px;
   }
 
-  /* 2-column specifications on mobile for compact, balanced cards */
-  .property-specs-grid {
+  .property-section-title {
+    font-size: 1.05rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .property-amenities-grid {
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.65rem;
+    gap: 0.5rem;
   }
 
-  .property-inclusions-grid,
-  .property-pricing-breakdown-grid,
-  .property-reviews-summary-grid {
-    grid-template-columns: 1fr;
+  .property-amenity-chip {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.8rem;
   }
 
   .property-modal-dialog {
@@ -285,9 +777,21 @@
   }
 }
 
-/* Ultra Small Mobile (<= 360px) */
+/* Ultra Small Mobile (<= 360px & 320px) */
 @media (max-width: 360px) {
+  .property-details-container {
+    padding-inline: 0.65rem;
+  }
+
+  .property-main-title {
+    font-size: 1.2rem;
+  }
+
   .property-specs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .property-amenities-grid {
     grid-template-columns: 1fr;
   }
 
